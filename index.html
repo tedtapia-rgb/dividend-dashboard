@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dividend Portfolio Dashboard</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         :root {
             --primary-color: #667eea;
@@ -206,6 +205,20 @@
             margin-bottom: 20px;
             color: var(--text-primary);
             text-align: center;
+        }
+
+        .chart-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            background: var(--background-light);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            text-align: center;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .holdings-table {
@@ -485,11 +498,19 @@
         <div class="charts-grid">
             <div class="chart-container">
                 <div class="chart-title">📊 Dividend Income Allocation</div>
-                <canvas id="allocationChart" width="400" height="300"></canvas>
+                <div class="chart-placeholder" id="allocationChart">
+                    <div>📊</div>
+                    <div>Chart will load after data is available</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7;">Interactive charts temporarily disabled due to browser tracking prevention</div>
+                </div>
             </div>
             <div class="chart-container">
                 <div class="chart-title">💵 Income Sources</div>
-                <canvas id="incomeChart" width="400" height="300"></canvas>
+                <div class="chart-placeholder" id="incomeChart">
+                    <div>💵</div>
+                    <div>Chart will load after data is available</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7;">Interactive charts temporarily disabled due to browser tracking prevention</div>
+                </div>
             </div>
         </div>
 
@@ -526,8 +547,6 @@
     </div>
 
     <script>
-        "use strict";
-        
         // RATE LIMITER CLASS
         class APIRateLimiter {
             constructor() {
@@ -549,7 +568,7 @@
                     retries: 0
                 };
                 
-                console.log("🚦 Rate Limiter initialized: 5 req/min with 15s minimum delay");
+                console.log('🚦 Rate Limiter initialized: 5 req/min with 15s minimum delay');
             }
             
             async makeRequest(url, options = {}) {
@@ -594,7 +613,7 @@
                         const response = await fetch(request.url, {
                             ...request.options,
                             headers: {
-                                "Accept": "application/json",
+                                'Accept': 'application/json',
                                 ...request.options.headers
                             }
                         });
@@ -611,7 +630,7 @@
                                 this.requestQueue.unshift(request);
                                 continue;
                             } else {
-                                request.reject(new Error("Rate limited after 3 retries"));
+                                request.reject(new Error('Rate limited after 3 retries'));
                                 continue;
                             }
                         }
@@ -651,42 +670,34 @@
         const rateLimiter = new APIRateLimiter();
 
         // Configuration
-        const MASSIVE_API_KEY = "pM_C7XYdORowYJNrQ0pJSCgx0OEDdcbY";
-        const API_BASE_URL = "https://api.massive.com/v3/reference/dividends";
+        const MASSIVE_API_KEY = 'pM_C7XYdORowYJNrQ0pJSCgx0OEDdcbY';
+        const API_BASE_URL = 'https://api.massive.com/v3/reference/dividends';
 
         // Portfolio Data
         const staticPortfolioData = {
-            "BEPC": { shares: 2575.66, type: "stock", account: "Brokerage" },
-            "HYMB": { shares: 3213.96, type: "stock", account: "Brokerage" },
-            "ROP": { shares: 111.96, type: "stock", account: "Brokerage" },
-            "SPSB": { shares: 1901.50, type: "stock", account: "Brokerage" },
-            "VTEB": { shares: 1785.34, type: "stock", account: "Brokerage" },
-            "VWENX": { shares: 1123.781, type: "mutual_fund", account: "HSA" },
-            "MPW": { shares: 2431.00, type: "stock", account: "Roth IRA" },
-            "O": { shares: 303.238, type: "stock", account: "Roth IRA" },
-            "PFE": { shares: 612.181, type: "stock", account: "Roth IRA" }
+            'BEPC': { shares: 2575.66, type: 'stock', account: 'Brokerage' },
+            'HYMB': { shares: 3213.96, type: 'stock', account: 'Brokerage' },
+            'ROP': { shares: 111.96, type: 'stock', account: 'Brokerage' },
+            'SPSB': { shares: 1901.50, type: 'stock', account: 'Brokerage' },
+            'VTEB': { shares: 1785.34, type: 'stock', account: 'Brokerage' },
+            'VWENX': { shares: 1123.781, type: 'mutual_fund', account: 'HSA' },
+            'MPW': { shares: 2431.00, type: 'stock', account: 'Roth IRA' },
+            'O': { shares: 303.238, type: 'stock', account: 'Roth IRA' },
+            'PFE': { shares: 612.181, type: 'stock', account: 'Roth IRA' }
         };
 
         // Global Variables
         let livePortfolioData = {};
         let liveDividendData = {};
         let apiStats = { total: 0, success: 0, hasData: false, dataQuality: 0 };
-        let allocationChart = null;
-        let incomeChart = null;
         let dividendCache = {};
         const CACHE_DURATION = 30 * 60 * 1000;
 
-        // Chart Colors
-        const chartColors = [
-            "#667eea", "#764ba2", "#9c27b0", "#e91e63", "#ff6b6b",
-            "#4ecdc4", "#45b7d1", "#96ceb4", "#feca57", "#ff9ff3"
-        ];
-
         // Utility Functions
         function formatCurrency(amount) {
-            return new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD"
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
             }).format(amount);
         }
 
@@ -695,10 +706,10 @@
         }
 
         function formatDate(dateString) {
-            return new Date(dateString).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric"
+            return new Date(dateString).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
             });
         }
 
@@ -722,69 +733,69 @@
 
         // Fallback dividend data
         const fallbackDividendData = {
-            "BEPC": {
+            'BEPC': {
                 dividendPerShare: 0.365,
-                frequency: "Quarterly",
-                exDividendDate: "2025-02-28",
-                payDate: "2025-03-31",
+                frequency: 'Quarterly',
+                exDividendDate: '2025-02-28',
+                payDate: '2025-03-31',
                 annualEstimate: 1.46,
-                source: "Fallback Data"
+                source: 'Fallback Data'
             },
-            "HYMB": {
+            'HYMB': {
                 dividendPerShare: 0.094,
-                frequency: "Monthly",
-                exDividendDate: "2025-01-15",
-                payDate: "2025-01-31",
+                frequency: 'Monthly',
+                exDividendDate: '2025-01-15',
+                payDate: '2025-01-31',
                 annualEstimate: 1.13,
-                source: "Fallback Data"
+                source: 'Fallback Data'
             },
-            "ROP": {
+            'ROP': {
                 dividendPerShare: 0.6875,
-                frequency: "Quarterly",
-                exDividendDate: "2025-01-15",
-                payDate: "2025-02-14",
+                frequency: 'Quarterly',
+                exDividendDate: '2025-01-15',
+                payDate: '2025-02-14',
                 annualEstimate: 2.75,
-                source: "Fallback Data"
+                source: 'Fallback Data'
             },
-            "SPSB": {
+            'SPSB': {
                 dividendPerShare: 0.0833,
-                frequency: "Monthly",
-                exDividendDate: "2025-01-02",
-                payDate: "2025-01-07",
+                frequency: 'Monthly',
+                exDividendDate: '2025-01-02',
+                payDate: '2025-01-07',
                 annualEstimate: 1.00,
-                source: "Fallback Data"
+                source: 'Fallback Data'
             },
-            "VTEB": {
+            'VTEB': {
                 dividendPerShare: 0.0917,
-                frequency: "Monthly",
-                exDividendDate: "2025-01-02",
-                payDate: "2025-01-07",
+                frequency: 'Monthly',
+                exDividendDate: '2025-01-02',
+                payDate: '2025-01-07',
                 annualEstimate: 1.10,
-                source: "Fallback Data"
+                source: 'Fallback Data'
             },
-            "MPW": {
+            'MPW': {
                 dividendPerShare: 0.08,
-                frequency: "Quarterly",
-                exDividendDate: "2025-02-15",
-                payDate: "2025-03-15",
+                frequency: 'Quarterly',
+                exDividendDate: '2025-02-15',
+                payDate: '2025-03-15',
                 annualEstimate: 0.32,
-                source: "Fallback Data"
+                source: 'Fallback Data'
             },
-            "O": {
+            'O': {
                 dividendPerShare: 0.2635,
-                frequency: "Monthly",
-                exDividendDate: "2025-01-02",
-                payDate: "2025-01-15",
+                frequency: 'Monthly',
+                exDividendDate: '2025-01-02',
+                payDate: '2025-01-15',
                 annualEstimate: 3.162,
-                source: "Fallback Data"
+                source: 'Fallback Data'
             },
-            "PFE": {
+            'PFE': {
                 dividendPerShare: 0.42,
-                frequency: "Quarterly",
-                exDividendDate: "2025-02-07",
-                payDate: "2025-03-07",
+                frequency: 'Quarterly',
+                exDividendDate: '2025-02-07',
+                payDate: '2025-03-07',
                 annualEstimate: 1.68,
-                source: "Fallback Data"
+                source: 'Fallback Data'
             }
         };
 
@@ -798,15 +809,15 @@
                     return cachedData;
                 }
                 
-                if (symbol === "VWENX") {
+                if (symbol === 'VWENX') {
                     console.log(`📊 Using specialized mutual fund data for ${symbol}`);
                     const mutualFundData = {
                         dividendPerShare: 1.65,
-                        frequency: "Quarterly",
-                        exDividendDate: "2025-03-21",
-                        payDate: "2025-03-24",
+                        frequency: 'Quarterly',
+                        exDividendDate: '2025-03-21',
+                        payDate: '2025-03-24',
                         annualEstimate: 1.65,
-                        source: "Mutual Fund Data"
+                        source: 'Mutual Fund Data'
                     };
                     setCachedDividend(symbol, mutualFundData);
                     return mutualFundData;
@@ -824,15 +835,15 @@
                         const dividendData = {
                             dividendPerShare: latest.cash_amount || 0,
                             frequency: {
-                                1: "Annual",
-                                2: "Semi-Annual",
-                                4: "Quarterly",
-                                12: "Monthly"
-                            }[latest.frequency] || "Unknown",
-                            exDividendDate: latest.ex_dividend_date || "N/A",
-                            payDate: latest.pay_date || "N/A",
+                                1: 'Annual',
+                                2: 'Semi-Annual',
+                                4: 'Quarterly',
+                                12: 'Monthly'
+                            }[latest.frequency] || 'Unknown',
+                            exDividendDate: latest.ex_dividend_date || 'N/A',
+                            payDate: latest.pay_date || 'N/A',
                             annualEstimate: (latest.cash_amount || 0) * (latest.frequency || 1),
-                            source: "Massive.com API"
+                            source: 'Massive.com API'
                         };
                         
                         setCachedDividend(symbol, dividendData);
@@ -873,15 +884,15 @@
                 console.log(`💰 Fetching price data for ${symbol}...`);
                 
                 const estimatedPrices = {
-                    "BEPC": 25.50,
-                    "HYMB": 24.80,
-                    "ROP": 485.00,
-                    "SPSB": 29.75,
-                    "VTEB": 51.20,
-                    "VWENX": 42.30,
-                    "MPW": 4.85,
-                    "O": 58.40,
-                    "PFE": 26.20
+                    'BEPC': 25.50,
+                    'HYMB': 24.80,
+                    'ROP': 485.00,
+                    'SPSB': 29.75,
+                    'VTEB': 51.20,
+                    'VWENX': 42.30,
+                    'MPW': 4.85,
+                    'O': 58.40,
+                    'PFE': 26.20
                 };
                 
                 const price = estimatedPrices[symbol] || 50.00;
@@ -890,7 +901,7 @@
                 return {
                     currentPrice: price,
                     marketValue: price * shares,
-                    source: "Estimated Prices"
+                    source: 'Estimated Prices'
                 };
                 
             } catch (error) {
@@ -901,7 +912,7 @@
 
         // DATA LOADING FUNCTIONS
         async function loadPortfolioData() {
-            console.log("🚀 Starting portfolio data loading...");
+            console.log('🚀 Starting portfolio data loading...');
             
             const symbols = Object.keys(staticPortfolioData);
             const totalSymbols = symbols.length;
@@ -942,7 +953,6 @@
             }
             
             updateDividendCalendar();
-            updateCharts();
             
             const successRate = apiStats.total > 0 ? (apiStats.success / apiStats.total * 100).toFixed(1) : 0;
             updateStatusText(`Loaded ${apiStats.success}/${apiStats.total} holdings (${successRate}% success)`);
@@ -952,7 +962,7 @@
 
         // UI UPDATE FUNCTIONS
         function updateStatusText(text) {
-            const statusText = document.getElementById("apiStatusText");
+            const statusText = document.getElementById('apiStatusText');
             if (statusText) {
                 statusText.textContent = text;
             }
@@ -960,12 +970,12 @@
 
         function updateStatusBar() {
             try {
-                const statusIndicator = document.getElementById("apiStatus");
-                const statusText = document.getElementById("apiStatusText");
-                const lastUpdate = document.getElementById("lastUpdate");
-                const apiCalls = document.getElementById("apiCalls");
-                const successCalls = document.getElementById("successCalls");
-                const cacheStatus = document.getElementById("cacheStatus");
+                const statusIndicator = document.getElementById('apiStatus');
+                const statusText = document.getElementById('apiStatusText');
+                const lastUpdate = document.getElementById('lastUpdate');
+                const apiCalls = document.getElementById('apiCalls');
+                const successCalls = document.getElementById('successCalls');
+                const cacheStatus = document.getElementById('cacheStatus');
 
                 if (!statusIndicator || !statusText || !lastUpdate || !apiCalls || !successCalls || !cacheStatus) {
                     return;
@@ -977,19 +987,19 @@
                 const validDividends = Object.keys(liveDividendData).length;
                 apiStats.hasData = validDividends > 0;
 
-                statusIndicator.className = "status-indicator";
+                statusIndicator.className = 'status-indicator';
                 
                 if (rateLimiter.stats.rateLimited > 0) {
-                    statusIndicator.classList.add("error");
+                    statusIndicator.classList.add('error');
                     statusText.textContent = `Rate Limited (${validDividends} holdings)`;
                 } else if (validDividends > 0) {
                     statusText.textContent = `Connected (${validDividends} holdings)`;
                 } else if (apiStats.total > 0) {
-                    statusIndicator.classList.add("fallback");
+                    statusIndicator.classList.add('fallback');
                     statusText.textContent = `Limited Data (${apiStats.success}/${apiStats.total})`;
                 } else {
-                    statusIndicator.classList.add("loading");
-                    statusText.textContent = "Loading...";
+                    statusIndicator.classList.add('loading');
+                    statusText.textContent = 'Loading...';
                 }
 
                 lastUpdate.textContent = new Date().toLocaleTimeString();
@@ -997,7 +1007,7 @@
                 successCalls.textContent = rateLimiter.stats.success;
                 
             } catch (error) {
-                console.error("❌ Error updating status bar:", error);
+                console.error('❌ Error updating status bar:', error);
             }
         }
 
@@ -1025,40 +1035,40 @@
 
                 const avgYield = totalValue > 0 ? (totalAnnualIncome / totalValue) * 100 : 0;
 
-                const totalValueEl = document.getElementById("totalValue");
-                const annualIncomeEl = document.getElementById("annualIncome");
-                const avgYieldEl = document.getElementById("avgYield");
-                const totalHoldingsEl = document.getElementById("totalHoldings");
+                const totalValueEl = document.getElementById('totalValue');
+                const annualIncomeEl = document.getElementById('annualIncome');
+                const avgYieldEl = document.getElementById('avgYield');
+                const totalHoldingsEl = document.getElementById('totalHoldings');
                 
-                if (totalValueEl) totalValueEl.textContent = totalValue > 0 ? formatCurrency(totalValue) : "Calculating...";
+                if (totalValueEl) totalValueEl.textContent = totalValue > 0 ? formatCurrency(totalValue) : 'Calculating...';
                 if (annualIncomeEl) annualIncomeEl.textContent = formatCurrency(totalAnnualIncome);
-                if (avgYieldEl) avgYieldEl.textContent = avgYield > 0 ? formatPercentage(avgYield) : "Calculating...";
+                if (avgYieldEl) avgYieldEl.textContent = avgYield > 0 ? formatPercentage(avgYield) : 'Calculating...';
                 if (totalHoldingsEl) totalHoldingsEl.textContent = `${dividendHoldings}/${Object.keys(staticPortfolioData).length}`;
 
                 updatePerformanceTracking(totalValue, totalAnnualIncome, dividendHoldings);
                 
             } catch (error) {
-                console.error("❌ Error updating KPIs:", error);
+                console.error('❌ Error updating KPIs:', error);
             }
         }
 
         function updatePerformanceTracking(totalValue, totalAnnualIncome, validHoldings) {
             try {
                 if (validHoldings === 0) {
-                    document.getElementById("dayChange").textContent = "Calculating...";
-                    document.getElementById("monthlyIncome").textContent = formatCurrency(0);
-                    document.getElementById("topPerformer").textContent = "Loading...";
-                    document.getElementById("highestYield").textContent = "Loading...";
+                    document.getElementById('dayChange').textContent = 'Calculating...';
+                    document.getElementById('monthlyIncome').textContent = formatCurrency(0);
+                    document.getElementById('topPerformer').textContent = 'Loading...';
+                    document.getElementById('highestYield').textContent = 'Loading...';
                     return;
                 }
 
                 const monthlyIncome = totalAnnualIncome / 12;
 
-                let topPerformer = "";
+                let topPerformer = '';
                 let highestIncome = 0;
-                let highestFrequency = "";
+                let highestFrequency = '';
                 let nextPaymentDate = null;
-                let earliestDate = new Date("2099-12-31");
+                let earliestDate = new Date('2099-12-31');
 
                 Object.keys(liveDividendData).forEach(symbol => {
                     const dividend = liveDividendData[symbol];
@@ -1072,7 +1082,7 @@
                             topPerformer = symbol;
                         }
 
-                        if (dividend.exDividendDate && dividend.exDividendDate !== "N/A") {
+                        if (dividend.exDividendDate && dividend.exDividendDate !== 'N/A') {
                             const exDate = new Date(dividend.exDividendDate);
                             if (exDate < earliestDate) {
                                 earliestDate = exDate;
@@ -1086,185 +1096,38 @@
                     .map(d => d.frequency)
                     .filter(f => f);
                 
-                if (frequencies.includes("Monthly")) {
-                    highestFrequency = "Monthly";
-                } else if (frequencies.includes("Quarterly")) {
-                    highestFrequency = "Quarterly";
-                } else if (frequencies.includes("Semi-Annual")) {
-                    highestFrequency = "Semi-Annual";
-                } else if (frequencies.includes("Annual")) {
-                    highestFrequency = "Annual";
+                if (frequencies.includes('Monthly')) {
+                    highestFrequency = 'Monthly';
+                } else if (frequencies.includes('Quarterly')) {
+                    highestFrequency = 'Quarterly';
+                } else if (frequencies.includes('Semi-Annual')) {
+                    highestFrequency = 'Semi-Annual';
+                } else if (frequencies.includes('Annual')) {
+                    highestFrequency = 'Annual';
                 }
 
-                const nextPaymentText = (nextPaymentDate && nextPaymentDate !== "N/A") ? 
-                    formatDate(nextPaymentDate) : "Calculating...";
+                const nextPaymentText = (nextPaymentDate && nextPaymentDate !== 'N/A') ? 
+                    formatDate(nextPaymentDate) : 'Calculating...';
 
-                document.getElementById("dayChange").textContent = nextPaymentText;
-                document.getElementById("monthlyIncome").textContent = formatCurrency(monthlyIncome);
-                document.getElementById("topPerformer").textContent = topPerformer || "Calculating...";
-                document.getElementById("highestYield").textContent = highestFrequency || "Calculating...";
+                document.getElementById('dayChange').textContent = nextPaymentText;
+                document.getElementById('monthlyIncome').textContent = formatCurrency(monthlyIncome);
+                document.getElementById('topPerformer').textContent = topPerformer || 'Calculating...';
+                document.getElementById('highestYield').textContent = highestFrequency || 'Calculating...';
                 
             } catch (error) {
-                console.error("❌ Error updating performance tracking:", error);
-            }
-        }
-
-        function updateCharts() {
-            try {
-                const validHoldings = Object.keys(liveDividendData).filter(symbol => 
-                    liveDividendData[symbol] && liveDividendData[symbol].annualEstimate > 0
-                );
-
-                if (validHoldings.length === 0) {
-                    console.log("⚠️ No dividend data available for charts");
-                    return;
-                }
-
-                updateAllocationChart(validHoldings);
-                updateIncomeChart(validHoldings);
-                
-            } catch (error) {
-                console.error("❌ Error updating charts:", error);
-            }
-        }
-
-        function updateAllocationChart(validHoldings) {
-            try {
-                const ctx = document.getElementById("allocationChart");
-                if (!ctx) return;
-
-                if (allocationChart) {
-                    allocationChart.destroy();
-                    allocationChart = null;
-                }
-
-                const context = ctx.getContext("2d");
-                const labels = validHoldings;
-                const data = validHoldings.map(symbol => {
-                    return staticPortfolioData[symbol].shares * liveDividendData[symbol].annualEstimate;
-                });
-
-                allocationChart = new Chart(context, {
-                    type: "doughnut",
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: data,
-                            backgroundColor: chartColors.slice(0, labels.length),
-                            borderWidth: 2,
-                            borderColor: "#ffffff"
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: {
-                                position: "bottom",
-                                labels: { 
-                                    padding: 0"color:#005CC5">15, 
-                                    usePointStyle: true,
-                                    boxWidth: 12
-                                }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const symbol = context.label;
-                                        const value = context.parsed;
-                                        const account = staticPortfolioData[symbol].account;
-                                        const percentage = ((value / data.reduce((a, b) => a + b, 0)) * 100).toFixed(1);
-                                        return `${symbol} (${account}): ${formatCurrency(value)}/year (${percentage}%)`;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-                
-            } catch (error) {
-                console.error("❌ Error creating allocation chart:", error);
-            }
-        }
-
-        function updateIncomeChart(validHoldings) {
-            try {
-                const ctx = document.getElementById("incomeChart");
-                if (!ctx) return;
-
-                if (incomeChart) {
-                    incomeChart.destroy();
-                    incomeChart = null;
-                }
-
-                const context = ctx.getContext("2d");
-                const incomeData = validHoldings
-                    .map(symbol => ({
-                        symbol,
-                        income: staticPortfolioData[symbol].shares * liveDividendData[symbol].annualEstimate
-                    }))
-                    .sort((a, b) => b.income - a.income);
-
-                const labels = incomeData.map(item => item.symbol);
-                const data = incomeData.map(item => item.income);
-
-                incomeChart = new Chart(context, {
-                    type: "bar",
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: "Annual Dividend Income",
-                            data: data,
-                            backgroundColor: chartColors[0],
-                            borderColor: chartColors[1],
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const symbol = context.label;
-                                        const income = context.parsed.y;
-                                        const frequency = liveDividendData[symbol] ? liveDividendData[symbol].frequency : "Unknown";
-                                        return `${symbol}: ${formatCurrency(income)} (${frequency})`;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: { grid: { display: false } },
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: "rgba(0,0,0,0.1)" },
-                                ticks: {
-                                    callback: function(value) {
-                                        return formatCurrency(value);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-                
-            } catch (error) {
-                console.error("❌ Error creating income chart:", error);
+                console.error('❌ Error updating performance tracking:', error);
             }
         }
 
         function updateTopHoldings() {
             try {
-                const tbody = document.getElementById("holdingsTableBody");
+                const tbody = document.getElementById('holdingsTableBody');
                 if (!tbody) return;
                 
-                tbody.innerHTML = "";
+                tbody.innerHTML = '';
 
                 const sortedSymbols = Object.keys(staticPortfolioData).sort((a, b) => {
-                    const accountOrder = { "Brokerage": 0, "HSA": 1, "Roth IRA": 2 };
+                    const accountOrder = { 'Brokerage': 0, 'HSA': 1, 'Roth IRA': 2 };
                     const accountA = staticPortfolioData[a].account;
                     const accountB = staticPortfolioData[b].account;
                     return accountOrder[accountA] - accountOrder[accountB];
@@ -1279,40 +1142,40 @@
                     const marketValue = liveHolding ? liveHolding.marketValue : null;
                     const annualIncome = dividend ? staticHolding.shares * dividend.annualEstimate : null;
                     
-                    const row = document.createElement("tr");
+                    const row = document.createElement('tr');
                     row.innerHTML = `
                         <td><strong>${symbol}</strong></td>
-                        <td><span class="account-badge account-${staticHolding.account.toLowerCase().replace(" ", "")}">${staticHolding.account}</span></td>
-                        <td>${staticHolding.shares.toLocaleString("en-US", { maximumFractionDigits: 2 })}</td>
-                        <td>${currentPrice ? formatCurrency(currentPrice) : "Loading..."}</td>
-                        <td><strong>${marketValue ? formatCurrency(marketValue) : "Loading..."}</strong></td>
-                        <td>${annualIncome ? formatCurrency(annualIncome) : "Loading..."}</td>
-                        <td>${dividend ? `$${dividend.dividendPerShare.toFixed(4)}` : "Loading..."}</td>
-                        <td>${dividend ? dividend.frequency : "Loading..."}</td>
-                        <td>${dividend ? formatDate(dividend.exDividendDate) : "Loading..."}</td>
+                        <td><span class="account-badge account-${staticHolding.account.toLowerCase().replace(' ', '')}">${staticHolding.account}</span></td>
+                        <td>${staticHolding.shares.toLocaleString('en-US', { maximumFractionDigits: 2 })}</td>
+                        <td>${currentPrice ? formatCurrency(currentPrice) : 'Loading...'}</td>
+                        <td><strong>${marketValue ? formatCurrency(marketValue) : 'Loading...'}</strong></td>
+                        <td>${annualIncome ? formatCurrency(annualIncome) : 'Loading...'}</td>
+                        <td>${dividend ? `$${dividend.dividendPerShare.toFixed(4)}` : 'Loading...'}</td>
+                        <td>${dividend ? dividend.frequency : 'Loading...'}</td>
+                        <td>${dividend ? formatDate(dividend.exDividendDate) : 'Loading...'}</td>
                     `;
                     tbody.appendChild(row);
                 });
                 
             } catch (error) {
-                console.error("❌ Error updating holdings table:", error);
+                console.error('❌ Error updating holdings table:', error);
             }
         }
 
         function updateDividendCalendar() {
             try {
-                const calendarContainer = document.getElementById("dividendCalendar");
+                const calendarContainer = document.getElementById('dividendCalendar');
                 if (!calendarContainer) return;
                 
-                calendarContainer.innerHTML = "";
+                calendarContainer.innerHTML = '';
 
                 const validDividends = Object.keys(liveDividendData).filter(symbol => 
                     liveDividendData[symbol] && liveDividendData[symbol].dividendPerShare > 0
                 );
 
                 if (validDividends.length === 0) {
-                    const noDataItem = document.createElement("div");
-                    noDataItem.className = "calendar-item";
+                    const noDataItem = document.createElement('div');
+                    noDataItem.className = 'calendar-item';
                     noDataItem.innerHTML = `
                         <div class="calendar-symbol">Loading Dividend Calendar...</div>
                         <div class="calendar-details">Dividend information is being loaded...</div>
@@ -1332,8 +1195,8 @@
                 sortedDividends.forEach(dividend => {
                     const expectedIncome = dividend.shares * dividend.dividendPerShare;
                     
-                    const calendarItem = document.createElement("div");
-                    calendarItem.className = "calendar-item";
+                    const calendarItem = document.createElement('div');
+                    calendarItem.className = 'calendar-item';
                     calendarItem.innerHTML = `
                         <div class="calendar-symbol">${dividend.symbol}</div>
                         <div class="calendar-details">
@@ -1346,13 +1209,13 @@
                 });
                 
             } catch (error) {
-                console.error("❌ Error updating dividend calendar:", error);
+                console.error('❌ Error updating dividend calendar:', error);
             }
         }
 
         // BUTTON FUNCTIONS
         async function refreshData() {
-            console.log("🔄 Starting full data refresh...");
+            console.log('🔄 Starting full data refresh...');
             
             livePortfolioData = {};
             liveDividendData = {};
@@ -1363,11 +1226,11 @@
         }
 
         async function quickRefresh() {
-            console.log("⚡ Starting quick refresh (3 holdings)...");
+            console.log('⚡ Starting quick refresh (3 holdings)...');
             
-            const priorityHoldings = ["BEPC", "HYMB", "O"];
+            const priorityHoldings = ['BEPC', 'HYMB', 'O'];
             
-            updateStatusText("Quick refresh: 3 priority holdings...");
+            updateStatusText('Quick refresh: 3 priority holdings...');
             
             for (let i = 0; i < priorityHoldings.length; i++) {
                 const symbol = priorityHoldings[i];
@@ -1393,25 +1256,20 @@
             }
             
             updateDividendCalendar();
-            updateCharts();
-            updateStatusText("Quick refresh complete");
+            updateStatusText('Quick refresh complete');
         }
 
         function toggleTheme() {
             const body = document.body;
-            const currentTheme = body.getAttribute("data-theme");
-            const newTheme = currentTheme === "dark" ? "light" : "dark";
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             
-            body.setAttribute("data-theme", newTheme);
-            localStorage.setItem("theme", newTheme);
-            
-            setTimeout(() => {
-                updateCharts();
-            }, 100);
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
         }
 
         function exportToCSV() {
-            const headers = ["Symbol", "Account", "Shares", "Price", "Value", "Annual Income", "Yield", "Frequency", "Ex-Date", "Pay Date"];
+            const headers = ['Symbol', 'Account', 'Shares', 'Price', 'Value', 'Annual Income', 'Yield', 'Frequency', 'Ex-Date', 'Pay Date'];
             const rows = [headers];
 
             Object.keys(staticPortfolioData).forEach(symbol => {
@@ -1419,32 +1277,32 @@
                 const liveHolding = livePortfolioData[symbol];
                 const dividend = liveDividendData[symbol];
                 
-                const currentPrice = liveHolding ? liveHolding.currentPrice : "No Data";
-                const marketValue = liveHolding ? liveHolding.marketValue : "No Data";
-                const annualIncome = dividend ? staticHolding.shares * dividend.annualEstimate : "No Data";
+                const currentPrice = liveHolding ? liveHolding.currentPrice : 'No Data';
+                const marketValue = liveHolding ? liveHolding.marketValue : 'No Data';
+                const annualIncome = dividend ? staticHolding.shares * dividend.annualEstimate : 'No Data';
                 const yield = (liveHolding && dividend && liveHolding.currentPrice > 0) ? 
-                    (dividend.dividendPerShare / liveHolding.currentPrice) * 100 : "No Data";
+                    (dividend.dividendPerShare / liveHolding.currentPrice) * 100 : 'No Data';
 
                 rows.push([
                     symbol,
                     staticHolding.account,
                     staticHolding.shares.toFixed(2),
-                    typeof currentPrice === "number" ? currentPrice.toFixed(2) : currentPrice,
-                    typeof marketValue === "number" ? marketValue.toFixed(2) : marketValue,
-                    typeof annualIncome === "number" ? annualIncome.toFixed(2) : annualIncome,
-                    typeof yield === "number" ? yield.toFixed(2) + "%" : yield,
-                    dividend ? dividend.frequency : "No Data",
-                    dividend ? dividend.exDividendDate : "No Data",
-                    dividend ? dividend.payDate : "No Data"
+                    typeof currentPrice === 'number' ? currentPrice.toFixed(2) : currentPrice,
+                    typeof marketValue === 'number' ? marketValue.toFixed(2) : marketValue,
+                    typeof annualIncome === 'number' ? annualIncome.toFixed(2) : annualIncome,
+                    typeof yield === 'number' ? yield.toFixed(2) + '%' : yield,
+                    dividend ? dividend.frequency : 'No Data',
+                    dividend ? dividend.exDividendDate : 'No Data',
+                    dividend ? dividend.payDate : 'No Data'
                 ]);
             });
 
-            const csvContent = rows.map(row => row.join(",")).join("\n");
-            const blob = new Blob([csvContent], { type: "text/csv" });
+            const csvContent = rows.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
+            const a = document.createElement('a');
             a.href = url;
-            a.download = `dividend_portfolio_${new Date().toISOString().split("T")[0]}.csv`;
+            a.download = `dividend_portfolio_${new Date().toISOString().split('T')[0]}.csv`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -1453,7 +1311,7 @@
 
         // INITIALIZATION
         function initializeFallbackData() {
-            console.log("🔄 Initializing with fallback data...");
+            console.log('🔄 Initializing with fallback data...');
             
             Object.keys(staticPortfolioData).forEach(symbol => {
                 if (fallbackDividendData[symbol]) {
@@ -1471,41 +1329,40 @@
 
         async function initializeDashboard() {
             try {
-                console.log("🚀 Initializing Dividend Dashboard...");
+                console.log('🚀 Initializing Dividend Dashboard...');
                 
-                const savedTheme = localStorage.getItem("theme") || "light";
-                document.body.setAttribute("data-theme", savedTheme);
+                const savedTheme = localStorage.getItem('theme') || 'light';
+                document.body.setAttribute('data-theme', savedTheme);
                 
                 initializeFallbackData();
                 
                 updateKPIs();
                 updateTopHoldings();
                 updateDividendCalendar();
-                updateCharts();
                 updateStatusBar();
                 
                 setTimeout(() => {
                     loadPortfolioData();
                 }, 1000);
                 
-                console.log("✅ Dashboard initialization complete");
+                console.log('✅ Dashboard initialization complete');
                 
             } catch (error) {
-                console.error("❌ Dashboard initialization failed:", error);
+                console.error('❌ Dashboard initialization failed:', error);
             }
         }
 
         // Initialize when DOM is ready
-        document.addEventListener("DOMContentLoaded", function() {
-            console.log("📄 DOM Content Loaded");
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM Content Loaded');
             setTimeout(() => {
                 initializeDashboard();
             }, 100);
         });
 
         // Fallback initialization
-        if (document.readyState !== "loading") {
-            console.log("📄 Document already loaded, initializing immediately...");
+        if (document.readyState !== 'loading') {
+            console.log('📄 Document already loaded, initializing immediately...');
             setTimeout(() => {
                 initializeDashboard();
             }, 100);
