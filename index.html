@@ -207,6 +207,132 @@
             text-align: center;
         }
 
+        /* CSS-based Chart Styles */
+        .css-chart {
+            width: 100%;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .donut-chart {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--primary-color) 0deg 90deg,
+                var(--secondary-color) 90deg 150deg,
+                var(--accent-color) 150deg 210deg,
+                var(--accent-secondary) 210deg 270deg,
+                #ff6b6b 270deg 300deg,
+                #4ecdc4 300deg 330deg,
+                #45b7d1 330deg 360deg
+            );
+            margin-bottom: 20px;
+        }
+
+        .donut-chart::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            background: var(--card-background);
+            border-radius: 50%;
+        }
+
+        .donut-chart::after {
+            content: 'Dividend\AAllocation';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+            white-space: pre;
+            line-height: 1.2;
+        }
+
+        .chart-legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 250px;
+            padding: 20px 0;
+            border-bottom: 2px solid var(--border-color);
+            position: relative;
+        }
+
+        .bar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            max-width: 60px;
+            margin: 0 5px;
+        }
+
+        .bar {
+            width: 100%;
+            background: linear-gradient(to top, var(--primary-color), var(--secondary-color));
+            border-radius: 4px 4px 0 0;
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 20px;
+        }
+
+        .bar:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+        }
+
+        .bar-value {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        .bar-label {
+            margin-top: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
         .holdings-table {
             background: var(--card-background);
             border-radius: 15px;
@@ -405,6 +531,16 @@
                 padding: 10px 8px;
                 font-size: 12px;
             }
+
+            .donut-chart {
+                width: 150px;
+                height: 150px;
+            }
+
+            .donut-chart::before {
+                width: 90px;
+                height: 90px;
+            }
         }
     </style>
 </head>
@@ -484,11 +620,20 @@
         <div class="charts-grid">
             <div class="chart-container">
                 <div class="chart-title">📊 Dividend Income Allocation</div>
-                <canvas id="allocationChart" width="400" height="300"></canvas>
+                <div class="css-chart">
+                    <div class="donut-chart"></div>
+                    <div class="chart-legend" id="allocationLegend">
+                        <!-- Legend items will be populated here -->
+                    </div>
+                </div>
             </div>
             <div class="chart-container">
-                <div class="chart-title">💵 Income Sources</div>
-                <canvas id="incomeChart" width="400" height="300"></canvas>
+                <div class="chart-title">💵 Annual Income Sources</div>
+                <div class="css-chart">
+                    <div class="bar-chart" id="incomeChart">
+                        <!-- Bar items will be populated here -->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -524,7 +669,6 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script>
         // RATE LIMITER CLASS
         class APIRateLimiter {
@@ -669,8 +813,6 @@
         let livePortfolioData = {};
         let liveDividendData = {};
         let apiStats = { total: 0, success: 0, hasData: false, dataQuality: 0 };
-        let allocationChart = null;
-        let incomeChart = null;
         let dividendCache = {};
         const CACHE_DURATION = 30 * 60 * 1000;
 
@@ -710,7 +852,6 @@
             const currentMonth = now.getMonth();
             const currentYear = now.getFullYear();
             
-            // Find next quarter end month (March=2, June=5, September=8, December=11)
             let nextQuarterMonth;
             if (currentMonth < 2) nextQuarterMonth = 2; // March
             else if (currentMonth < 5) nextQuarterMonth = 5; // June
@@ -719,7 +860,7 @@
             else nextQuarterMonth = 2; // Next year March
             
             const nextYear = nextQuarterMonth === 2 && currentMonth >= 11 ? currentYear + 1 : currentYear;
-            return new Date(nextYear, nextQuarterMonth, 15); // 15th of the month
+            return new Date(nextYear, nextQuarterMonth, 15);
         }
 
         function getNextMonthDate() {
@@ -968,7 +1109,7 @@
             }
             
             updateDividendCalendar();
-            updateCharts();
+            updateCSSCharts();
             
             const successRate = apiStats.total > 0 ? (apiStats.success / apiStats.total * 100).toFixed(1) : 0;
             updateStatusText(`Loaded ${apiStats.success}/${apiStats.total} holdings (${successRate}% success)`);
@@ -1135,7 +1276,7 @@
             }
         }
 
-        function updateCharts() {
+        function updateCSSCharts() {
             try {
                 const validHoldings = Object.keys(liveDividendData).filter(symbol => 
                     liveDividendData[symbol] && liveDividendData[symbol].annualEstimate > 0
@@ -1146,84 +1287,51 @@
                     return;
                 }
 
-                updateAllocationChart(validHoldings);
-                updateIncomeChart(validHoldings);
+                updateAllocationLegend(validHoldings);
+                updateIncomeBarChart(validHoldings);
                 
             } catch (error) {
-                console.error('❌ Error updating charts:', error);
+                console.error('❌ Error updating CSS charts:', error);
             }
         }
 
-        function updateAllocationChart(validHoldings) {
+        function updateAllocationLegend(validHoldings) {
             try {
-                const ctx = document.getElementById('allocationChart');
-                if (!ctx) return;
+                const legendContainer = document.getElementById('allocationLegend');
+                if (!legendContainer) return;
 
-                if (allocationChart) {
-                    allocationChart.destroy();
-                    allocationChart = null;
-                }
+                legendContainer.innerHTML = '';
 
-                const context = ctx.getContext('2d');
-                const labels = validHoldings;
-                const data = validHoldings.map(symbol => {
-                    return staticPortfolioData[symbol].shares * liveDividendData[symbol].annualEstimate;
-                });
+                const data = validHoldings.map(symbol => ({
+                    symbol,
+                    income: staticPortfolioData[symbol].shares * liveDividendData[symbol].annualEstimate
+                }));
 
-                allocationChart = new Chart(context, {
-                    type: 'doughnut',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: data,
-                            backgroundColor: chartColors.slice(0, labels.length),
-                            borderWidth: 2,
-                            borderColor: '#ffffff'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: { 
-                                    padding: 0"color:#005CC5">15, 
-                                    usePointStyle: true,
-                                    boxWidth: 12
-                                }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const symbol = context.label;
-                                        const value = context.parsed;
-                                        const account = staticPortfolioData[symbol].account;
-                                        const percentage = ((value / data.reduce((a, b) => a + b, 0)) * 100).toFixed(1);
-                                        return `${symbol} (${account}): ${formatCurrency(value)}/year (${percentage}%)`;
-                                    }
-                                }
-                            }
-                        }
-                    }
+                const totalIncome = data.reduce((sum, item) => sum + item.income, 0);
+
+                data.forEach((item, index) => {
+                    const percentage = ((item.income / totalIncome) * 100).toFixed(1);
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'legend-item';
+                    legendItem.innerHTML = `
+                        <div class="legend-color" style="background-color: ${chartColors[index]}"></div>
+                        <span>${item.symbol} (${percentage}%)</span>
+                    `;
+                    legendContainer.appendChild(legendItem);
                 });
                 
             } catch (error) {
-                console.error('❌ Error creating allocation chart:', error);
+                console.error('❌ Error updating allocation legend:', error);
             }
         }
 
-        function updateIncomeChart(validHoldings) {
+        function updateIncomeBarChart(validHoldings) {
             try {
-                const ctx = document.getElementById('incomeChart');
-                if (!ctx) return;
+                const chartContainer = document.getElementById('incomeChart');
+                if (!chartContainer) return;
 
-                if (incomeChart) {
-                    incomeChart.destroy();
-                    incomeChart = null;
-                }
+                chartContainer.innerHTML = '';
 
-                const context = ctx.getContext('2d');
                 const incomeData = validHoldings
                     .map(symbol => ({
                         symbol,
@@ -1231,54 +1339,24 @@
                     }))
                     .sort((a, b) => b.income - a.income);
 
-                const labels = incomeData.map(item => item.symbol);
-                const data = incomeData.map(item => item.income);
+                const maxIncome = Math.max(...incomeData.map(item => item.income));
 
-                incomeChart = new Chart(context, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Annual Dividend Income',
-                            data: data,
-                            backgroundColor: chartColors[0],
-                            borderColor: chartColors[1],
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const symbol = context.label;
-                                        const income = context.parsed.y;
-                                        const frequency = liveDividendData[symbol] ? liveDividendData[symbol].frequency : 'Unknown';
-                                        return `${symbol}: ${formatCurrency(income)} (${frequency})`;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: { grid: { display: false } },
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: 'rgba(0,0,0,0.1)' },
-                                ticks: {
-                                    callback: function(value) {
-                                        return formatCurrency(value);
-                                    }
-                                }
-                            }
-                        }
-                    }
+                incomeData.forEach(item => {
+                    const barHeight = (item.income / maxIncome) * 200; // Max height 200px
+                    
+                    const barItem = document.createElement('div');
+                    barItem.className = 'bar-item';
+                    barItem.innerHTML = `
+                        <div class="bar" style="height: ${barHeight}px;">
+                            <div class="bar-value">${formatCurrency(item.income)}</div>
+                        </div>
+                        <div class="bar-label">${item.symbol}</div>
+                    `;
+                    chartContainer.appendChild(barItem);
                 });
                 
             } catch (error) {
-                console.error('❌ Error creating income chart:', error);
+                console.error('❌ Error updating income bar chart:', error);
             }
         }
 
@@ -1419,7 +1497,7 @@
             }
             
             updateDividendCalendar();
-            updateCharts();
+            updateCSSCharts();
             updateStatusText('Quick refresh complete');
         }
 
@@ -1430,10 +1508,6 @@
             
             body.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
-            
-            setTimeout(() => {
-                updateCharts();
-            }, 100);
         }
 
         function exportToCSV() {
@@ -1507,7 +1581,7 @@
                 updateKPIs();
                 updateTopHoldings();
                 updateDividendCalendar();
-                updateCharts();
+                updateCSSCharts();
                 updateStatusBar();
                 
                 setTimeout(() => {
