@@ -524,152 +524,8 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script>
-        // Simple Chart Implementation for Dividend Dashboard
-        class SimpleChart {
-            constructor(canvas, config) {
-                this.canvas = canvas;
-                this.ctx = canvas.getContext('2d');
-                this.config = config;
-                this.data = config.data;
-                this.options = config.options || {};
-                this.type = config.type;
-                this.destroyed = false;
-            }
-
-            destroy() {
-                this.destroyed = true;
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            }
-
-            update() {
-                if (!this.destroyed) {
-                    this.draw();
-                }
-            }
-
-            draw() {
-                if (this.destroyed) return;
-                
-                const ctx = this.ctx;
-                const canvas = this.canvas;
-                
-                // Clear canvas
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                if (this.type === 'doughnut') {
-                    this.drawDoughnut();
-                } else if (this.type === 'bar') {
-                    this.drawBar();
-                }
-            }
-
-            drawDoughnut() {
-                const ctx = this.ctx;
-                const canvas = this.canvas;
-                const data = this.data.datasets[0].data;
-                const labels = this.data.labels;
-                const colors = this.data.datasets[0].backgroundColor;
-                
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                const radius = Math.min(centerX, centerY) - 40;
-                const innerRadius = radius * 0.6;
-                
-                let total = data.reduce((sum, value) => sum + value, 0);
-                let currentAngle = -Math.PI / 2;
-                
-                // Draw segments
-                data.forEach((value, index) => {
-                    const sliceAngle = (value / total) * 2 * Math.PI;
-                    
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-                    ctx.arc(centerX, centerY, innerRadius, currentAngle + sliceAngle, currentAngle, true);
-                    ctx.closePath();
-                    
-                    ctx.fillStyle = colors[index] || '#667eea';
-                    ctx.fill();
-                    
-                    currentAngle += sliceAngle;
-                });
-                
-                // Draw legend
-                this.drawLegend(labels, colors, data, total);
-            }
-
-            drawBar() {
-                const ctx = this.ctx;
-                const canvas = this.canvas;
-                const data = this.data.datasets[0].data;
-                const labels = this.data.labels;
-                const color = this.data.datasets[0].backgroundColor || '#667eea';
-                
-                const padding = 40;
-                const chartWidth = canvas.width - padding * 2;
-                const chartHeight = canvas.height - padding * 2;
-                
-                const maxValue = Math.max(...data);
-                const barWidth = chartWidth / data.length * 0.8;
-                const barSpacing = chartWidth / data.length * 0.2;
-                
-                // Draw bars
-                data.forEach((value, index) => {
-                    const barHeight = (value / maxValue) * chartHeight;
-                    const x = padding + index * (barWidth + barSpacing);
-                    const y = canvas.height - padding - barHeight;
-                    
-                    ctx.fillStyle = color;
-                    ctx.fillRect(x, y, barWidth, barHeight);
-                    
-                    // Draw labels
-                    ctx.fillStyle = '#666';
-                    ctx.font = '12px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(labels[index], x + barWidth / 2, canvas.height - 10);
-                    
-                    // Draw values
-                    ctx.fillStyle = '#333';
-                    ctx.fillText(this.formatCurrency(value), x + barWidth / 2, y - 5);
-                });
-            }
-
-            drawLegend(labels, colors, data, total) {
-                const ctx = this.ctx;
-                const canvas = this.canvas;
-                
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'left';
-                
-                const legendY = canvas.height - 80;
-                let legendX = 20;
-                
-                labels.forEach((label, index) => {
-                    const percentage = ((data[index] / total) * 100).toFixed(1);
-                    
-                    // Draw color box
-                    ctx.fillStyle = colors[index] || '#667eea';
-                    ctx.fillRect(legendX, legendY + index * 20, 12, 12);
-                    
-                    // Draw text
-                    ctx.fillStyle = '#333';
-                    ctx.fillText(`${label} (${percentage}%)`, legendX + 20, legendY + index * 20 + 10);
-                });
-            }
-
-            formatCurrency(amount) {
-                return new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                }).format(amount);
-            }
-        }
-
-        // Chart.js compatibility layer
-        window.Chart = SimpleChart;
-
         // RATE LIMITER CLASS
         class APIRateLimiter {
             constructor() {
@@ -844,6 +700,34 @@
             });
         }
 
+        // Get current date for realistic fallback dates
+        function getCurrentDate() {
+            return new Date();
+        }
+
+        function getNextQuarterDate() {
+            const now = getCurrentDate();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            // Find next quarter end month (March=2, June=5, September=8, December=11)
+            let nextQuarterMonth;
+            if (currentMonth < 2) nextQuarterMonth = 2; // March
+            else if (currentMonth < 5) nextQuarterMonth = 5; // June
+            else if (currentMonth < 8) nextQuarterMonth = 8; // September
+            else if (currentMonth < 11) nextQuarterMonth = 11; // December
+            else nextQuarterMonth = 2; // Next year March
+            
+            const nextYear = nextQuarterMonth === 2 && currentMonth >= 11 ? currentYear + 1 : currentYear;
+            return new Date(nextYear, nextQuarterMonth, 15); // 15th of the month
+        }
+
+        function getNextMonthDate() {
+            const now = getCurrentDate();
+            const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 15);
+            return nextMonth;
+        }
+
         // Caching functions
         function getCachedDividend(symbol) {
             const cached = dividendCache[symbol];
@@ -862,69 +746,69 @@
             console.log(`💾 Cached dividend data for ${symbol}`);
         }
 
-        // Fallback dividend data
+        // Updated fallback dividend data with current dates
         const fallbackDividendData = {
             'BEPC': {
                 dividendPerShare: 0.365,
                 frequency: 'Quarterly',
-                exDividendDate: '2025-02-28',
-                payDate: '2025-03-31',
+                exDividendDate: getNextQuarterDate().toISOString().split('T')[0],
+                payDate: new Date(getNextQuarterDate().getTime() + 30*24*60*60*1000).toISOString().split('T')[0],
                 annualEstimate: 1.46,
                 source: 'Fallback Data'
             },
             'HYMB': {
                 dividendPerShare: 0.094,
                 frequency: 'Monthly',
-                exDividendDate: '2025-01-15',
-                payDate: '2025-01-31',
+                exDividendDate: getNextMonthDate().toISOString().split('T')[0],
+                payDate: new Date(getNextMonthDate().getTime() + 15*24*60*60*1000).toISOString().split('T')[0],
                 annualEstimate: 1.13,
                 source: 'Fallback Data'
             },
             'ROP': {
                 dividendPerShare: 0.6875,
                 frequency: 'Quarterly',
-                exDividendDate: '2025-01-15',
-                payDate: '2025-02-14',
+                exDividendDate: getNextQuarterDate().toISOString().split('T')[0],
+                payDate: new Date(getNextQuarterDate().getTime() + 30*24*60*60*1000).toISOString().split('T')[0],
                 annualEstimate: 2.75,
                 source: 'Fallback Data'
             },
             'SPSB': {
                 dividendPerShare: 0.0833,
                 frequency: 'Monthly',
-                exDividendDate: '2025-01-02',
-                payDate: '2025-01-07',
+                exDividendDate: getNextMonthDate().toISOString().split('T')[0],
+                payDate: new Date(getNextMonthDate().getTime() + 5*24*60*60*1000).toISOString().split('T')[0],
                 annualEstimate: 1.00,
                 source: 'Fallback Data'
             },
             'VTEB': {
                 dividendPerShare: 0.0917,
                 frequency: 'Monthly',
-                exDividendDate: '2025-01-02',
-                payDate: '2025-01-07',
+                exDividendDate: getNextMonthDate().toISOString().split('T')[0],
+                payDate: new Date(getNextMonthDate().getTime() + 5*24*60*60*1000).toISOString().split('T')[0],
                 annualEstimate: 1.10,
                 source: 'Fallback Data'
             },
             'MPW': {
                 dividendPerShare: 0.08,
                 frequency: 'Quarterly',
-                exDividendDate: '2025-02-15',
-                payDate: '2025-03-15',
+                exDividendDate: getNextQuarterDate().toISOString().split('T')[0],
+                payDate: new Date(getNextQuarterDate().getTime() + 30*24*60*60*1000).toISOString().split('T')[0],
                 annualEstimate: 0.32,
                 source: 'Fallback Data'
             },
             'O': {
                 dividendPerShare: 0.2635,
                 frequency: 'Monthly',
-                exDividendDate: '2025-01-02',
-                payDate: '2025-01-15',
+                exDividendDate: getNextMonthDate().toISOString().split('T')[0],
+                payDate: new Date(getNextMonthDate().getTime() + 15*24*60*60*1000).toISOString().split('T')[0],
                 annualEstimate: 3.162,
                 source: 'Fallback Data'
             },
             'PFE': {
                 dividendPerShare: 0.42,
                 frequency: 'Quarterly',
-                exDividendDate: '2025-02-07',
-                payDate: '2025-03-07',
+                exDividendDate: getNextQuarterDate().toISOString().split('T')[0],
+                payDate: new Date(getNextQuarterDate().getTime() + 30*24*60*60*1000).toISOString().split('T')[0],
                 annualEstimate: 1.68,
                 source: 'Fallback Data'
             }
@@ -945,8 +829,8 @@
                     const mutualFundData = {
                         dividendPerShare: 1.65,
                         frequency: 'Quarterly',
-                        exDividendDate: '2025-03-21',
-                        payDate: '2025-03-24',
+                        exDividendDate: getNextQuarterDate().toISOString().split('T')[0],
+                        payDate: new Date(getNextQuarterDate().getTime() + 3*24*60*60*1000).toISOString().split('T')[0],
                         annualEstimate: 1.65,
                         source: 'Mutual Fund Data'
                     };
@@ -1280,19 +1164,47 @@
                     allocationChart = null;
                 }
 
+                const context = ctx.getContext('2d');
                 const labels = validHoldings;
                 const data = validHoldings.map(symbol => {
                     return staticPortfolioData[symbol].shares * liveDividendData[symbol].annualEstimate;
                 });
 
-                allocationChart = new Chart(ctx, {
+                allocationChart = new Chart(context, {
                     type: 'doughnut',
                     data: {
                         labels: labels,
                         datasets: [{
                             data: data,
-                            backgroundColor: chartColors.slice(0, labels.length)
+                            backgroundColor: chartColors.slice(0, labels.length),
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
                         }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { 
+                                    padding: 0"color:#005CC5">15, 
+                                    usePointStyle: true,
+                                    boxWidth: 12
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const symbol = context.label;
+                                        const value = context.parsed;
+                                        const account = staticPortfolioData[symbol].account;
+                                        const percentage = ((value / data.reduce((a, b) => a + b, 0)) * 100).toFixed(1);
+                                        return `${symbol} (${account}): ${formatCurrency(value)}/year (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
                 
@@ -1311,6 +1223,7 @@
                     incomeChart = null;
                 }
 
+                const context = ctx.getContext('2d');
                 const incomeData = validHoldings
                     .map(symbol => ({
                         symbol,
@@ -1321,15 +1234,46 @@
                 const labels = incomeData.map(item => item.symbol);
                 const data = incomeData.map(item => item.income);
 
-                incomeChart = new Chart(ctx, {
+                incomeChart = new Chart(context, {
                     type: 'bar',
                     data: {
                         labels: labels,
                         datasets: [{
                             label: 'Annual Dividend Income',
                             data: data,
-                            backgroundColor: chartColors[0]
+                            backgroundColor: chartColors[0],
+                            borderColor: chartColors[1],
+                            borderWidth: 1
                         }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const symbol = context.label;
+                                        const income = context.parsed.y;
+                                        const frequency = liveDividendData[symbol] ? liveDividendData[symbol].frequency : 'Unknown';
+                                        return `${symbol}: ${formatCurrency(income)} (${frequency})`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.1)' },
+                                ticks: {
+                                    callback: function(value) {
+                                        return formatCurrency(value);
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
                 
