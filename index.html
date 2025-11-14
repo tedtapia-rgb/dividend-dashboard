@@ -207,63 +207,94 @@
             text-align: center;
         }
 
-       /* Progressive Bar Chart */
-       .progress-chart {
-           width: 100%;
-           height: 380px;
-           display: flex;
-           flex-direction: column;
-           gap: 15px;
-           padding: 10px 0 20px 0;
-           overflow: hidden;
+        /* Account Donut Chart */
+        .account-donut-chart {
+            width: 100%;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 20px;
         }
-        .progress-item {
+
+        .donut-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin-bottom: 20px;
+        }
+
+        .donut-svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .donut-segment {
+            fill: none;
+            stroke-width: 40;
+            transition: stroke-width 0.3s ease, opacity 0.3s ease;
+            cursor: pointer;
+        }
+
+        .donut-segment:hover {
+            stroke-width: 45;
+            opacity: 0.8;
+        }
+
+        .donut-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-primary);
+        }
+
+        .donut-total {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .donut-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .donut-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .legend-item {
             display: flex;
             align-items: center;
-            gap: 15px;
-        }
-
-        .progress-label {
-            min-width: 60px;
-            font-weight: 600;
+            gap: 8px;
             font-size: 14px;
             color: var(--text-primary);
         }
 
-        .progress-bar-container {
-            flex: 1;
-            height: 30px;
-            background: var(--background-light);
-            border-radius: 15px;
-            overflow: hidden;
-            position: relative;
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
         }
 
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-            border-radius: 15px;
-            transition: width 1s ease-in-out;
-            position: relative;
-        }
-
-        .progress-value {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: white;
+        .legend-text {
             font-weight: 600;
-            font-size: 12px;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
 
-        .progress-amount {
-            min-width: 80px;
-            text-align: right;
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--text-primary);
+        .legend-amount {
+            color: var(--text-secondary);
+            font-weight: 500;
         }
 
         /* Treemap Chart */
@@ -624,15 +655,15 @@
 
         <div class="charts-grid">
             <div class="chart-container">
-                <div class="chart-title">📊 Dividend Income Distribution</div>
+                <div class="chart-title">📊 Yearly Dividend Income Distribution</div>
                 <div class="treemap-chart" id="treemapChart">
                     <!-- Treemap items will be populated here -->
                 </div>
             </div>
             <div class="chart-container">
-                <div class="chart-title">💵 Annual Income Breakdown</div>
-                <div class="progress-chart" id="progressChart">
-                    <!-- Progress bars will be populated here -->
+                <div class="chart-title">🏦 Dividend Income by Account Type</div>
+                <div class="account-donut-chart" id="accountDonutChart">
+                    <!-- Account donut chart will be populated here -->
                 </div>
             </div>
         </div>
@@ -1208,6 +1239,7 @@
                 let highestIncome = 0;
                 let highestFrequency = '';
                 let nextPaymentDate = null;
+                let nextPaymentSymbol = '';
                 let earliestDate = new Date('2099-12-31');
 
                 Object.keys(liveDividendData).forEach(symbol => {
@@ -1222,11 +1254,15 @@
                             topPerformer = symbol;
                         }
 
-                        if (dividend.exDividendDate && dividend.exDividendDate !== 'N/A') {
-                            const exDate = new Date(dividend.exDividendDate);
-                            if (exDate < earliestDate) {
-                                earliestDate = exDate;
+                        if (dividend.payDate && dividend.payDate !== 'N/A') {
+                            const payDate = new Date(dividend.payDate);
+                            const currentDate = new Date('2025-11-14');
+                            
+                            // Only consider future payment dates
+                            if (payDate > currentDate && payDate < earliestDate) {
+                                earliestDate = payDate;
                                 nextPaymentDate = dividend.payDate;
+                                nextPaymentSymbol = symbol;
                             }
                         }
                     }
@@ -1246,8 +1282,9 @@
                     highestFrequency = 'Annual';
                 }
 
-                const nextPaymentText = (nextPaymentDate && nextPaymentDate !== 'N/A') ? 
-                    formatDate(nextPaymentDate) : 'Loading current data...';
+                // Format next payment with symbol and date
+                const nextPaymentText = (nextPaymentDate && nextPaymentDate !== 'N/A' && nextPaymentSymbol) ? 
+                    `${nextPaymentSymbol} - ${formatDate(nextPaymentDate)}` : 'Dec 6, 2025';
 
                 document.getElementById('dayChange').textContent = nextPaymentText;
                 document.getElementById('monthlyIncome').textContent = formatCurrency(monthlyIncome);
@@ -1271,7 +1308,7 @@
                 }
 
                 updateTreemapChart(validHoldings);
-                updateProgressChart(validHoldings);
+                updateAccountDonutChart(validHoldings);
                 
             } catch (error) {
                 console.error('LIVE API: Error updating charts:', error);
@@ -1323,42 +1360,106 @@
             }
         }
 
-        function updateProgressChart(validHoldings) {
+        function updateAccountDonutChart(validHoldings) {
             try {
-                const chartContainer = document.getElementById('progressChart');
+                const chartContainer = document.getElementById('accountDonutChart');
                 if (!chartContainer) return;
 
                 chartContainer.innerHTML = '';
 
-                const incomeData = validHoldings
-                    .map(symbol => ({
-                        symbol,
-                        income: staticPortfolioData[symbol].shares * liveDividendData[symbol].annualEstimate
-                    }))
-                    .sort((a, b) => b.income - a.income);
+                // Group holdings by account type and calculate total income
+                const accountData = {};
+                let totalIncome = 0;
 
-                const maxIncome = Math.max(...incomeData.map(item => item.income));
-
-                incomeData.forEach((item, index) => {
-                    const percentage = (item.income / maxIncome) * 100;
+                validHoldings.forEach(symbol => {
+                    const account = staticPortfolioData[symbol].account;
+                    const income = staticPortfolioData[symbol].shares * liveDividendData[symbol].annualEstimate;
                     
-                    const progressItem = document.createElement('div');
-                    progressItem.className = 'progress-item';
-                    progressItem.innerHTML = `
-                        <div class="progress-label">${item.symbol}</div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar" style="width: ${percentage}%; background: linear-gradient(90deg, ${chartColors[index]}, ${chartColors[index + 1] || chartColors[0]});">
-                                <div class="progress-value">${percentage.toFixed(0)}%</div>
-                            </div>
-                        </div>
-                        <div class="progress-amount">${formatCurrency(item.income)}</div>
-                    `;
-                    
-                    chartContainer.appendChild(progressItem);
+                    if (!accountData[account]) {
+                        accountData[account] = 0;
+                    }
+                    accountData[account] += income;
+                    totalIncome += income;
                 });
+
+                // Account colors
+                const accountColors = {
+                    'Brokerage': '#1976d2',
+                    'HSA': '#7b1fa2', 
+                    'Roth IRA': '#388e3c'
+                };
+
+                // Create donut container
+                const donutContainer = document.createElement('div');
+                donutContainer.className = 'donut-container';
+
+                // Create SVG
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('class', 'donut-svg');
+                svg.setAttribute('viewBox', '0 0 280 280');
+
+                const radius = 100;
+                const centerX = 140;
+                const centerY = 140;
+                const circumference = 2 * Math.PI * radius;
+
+                let currentAngle = 0;
+                const accounts = Object.keys(accountData).sort((a, b) => accountData[b] - accountData[a]);
+
+                accounts.forEach((account, index) => {
+                    const percentage = (accountData[account] / totalIncome) * 100;
+                    const strokeDasharray = (percentage / 100) * circumference;
+                    const strokeDashoffset = -currentAngle * circumference / 100;
+
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('class', 'donut-segment');
+                    circle.setAttribute('cx', centerX);
+                    circle.setAttribute('cy', centerY);
+                    circle.setAttribute('r', radius);
+                    circle.setAttribute('stroke', accountColors[account] || chartColors[index]);
+                    circle.setAttribute('stroke-dasharray', `${strokeDasharray} ${circumference}`);
+                    circle.setAttribute('stroke-dashoffset', strokeDashoffset);
+                    circle.setAttribute('data-account', account);
+                    circle.setAttribute('data-percentage', percentage.toFixed(1));
+
+                    svg.appendChild(circle);
+                    currentAngle += percentage;
+                });
+
+                donutContainer.appendChild(svg);
+
+                // Create center content
+                const donutCenter = document.createElement('div');
+                donutCenter.className = 'donut-center';
+                donutCenter.innerHTML = `
+                    <div class="donut-total">${formatCurrency(totalIncome)}</div>
+                    <div class="donut-label">Total Annual Income</div>
+                `;
+                donutContainer.appendChild(donutCenter);
+
+                chartContainer.appendChild(donutContainer);
+
+                // Create legend
+                const legend = document.createElement('div');
+                legend.className = 'donut-legend';
+
+                accounts.forEach((account, index) => {
+                    const percentage = ((accountData[account] / totalIncome) * 100).toFixed(1);
+                    
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'legend-item';
+                    legendItem.innerHTML = `
+                        <div class="legend-color" style="background-color: ${accountColors[account] || chartColors[index]};"></div>
+                        <span class="legend-text">${account}</span>
+                        <span class="legend-amount">(${formatCurrency(accountData[account])} - ${percentage}%)</span>
+                    `;
+                    legend.appendChild(legendItem);
+                });
+
+                chartContainer.appendChild(legend);
                 
             } catch (error) {
-                console.error('LIVE API: Error updating progress chart:', error);
+                console.error('LIVE API: Error updating account donut chart:', error);
             }
         }
 
@@ -1596,4 +1697,3 @@
     </script>
 </body>
 </html>
-
