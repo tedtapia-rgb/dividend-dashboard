@@ -185,24 +185,24 @@
 
         .charts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
             gap: 30px;
             margin-bottom: 30px;
         }
 
         .chart-container {
             background: var(--card-background);
-            padding: 25px;
+            padding: 30px;
             border-radius: 15px;
             box-shadow: 0 8px 25px rgba(0,0,0,0.1);
             border: 1px solid var(--border-color);
-            min-height: 400px;
+            min-height: 500px;
         }
 
         .chart-title {
             font-size: 1.3rem;
             font-weight: 600;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             color: var(--text-primary);
             text-align: center;
         }
@@ -210,7 +210,7 @@
         /* CSS-based Chart Styles */
         .css-chart {
             width: 100%;
-            height: 300px;
+            height: 400px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -219,8 +219,8 @@
 
         .donut-chart {
             position: relative;
-            width: 200px;
-            height: 200px;
+            width: 250px;
+            height: 250px;
             border-radius: 50%;
             background: conic-gradient(
                 var(--primary-color) 0deg 90deg,
@@ -231,7 +231,7 @@
                 #4ecdc4 300deg 330deg,
                 #45b7d1 330deg 360deg
             );
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
 
         .donut-chart::before {
@@ -240,55 +240,64 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 120px;
-            height: 120px;
+            width: 150px;
+            height: 150px;
             background: var(--card-background);
             border-radius: 50%;
         }
 
         .donut-chart::after {
-            content: 'Dividend\AAllocation';
+            content: 'Dividend Income';
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 16px;
             color: var(--text-primary);
-            white-space: pre;
             line-height: 1.2;
         }
 
         .chart-legend {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
             width: 100%;
+            max-width: 400px;
             margin-top: 20px;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 12px;
+            gap: 10px;
+            font-size: 14px;
+            padding: 8px;
+            background: var(--background-light);
+            border-radius: 8px;
         }
 
         .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .legend-text {
+            font-weight: 500;
         }
 
         .bar-chart {
             display: flex;
             align-items: flex-end;
             justify-content: space-around;
-            height: 250px;
-            padding: 20px 0;
+            height: 300px;
+            padding: 30px 10px 40px 10px;
             border-bottom: 2px solid var(--border-color);
             position: relative;
+            gap: 8px;
         }
 
         .bar-item {
@@ -296,17 +305,18 @@
             flex-direction: column;
             align-items: center;
             flex: 1;
-            max-width: 60px;
-            margin: 0 5px;
+            max-width: 45px;
+            position: relative;
         }
 
         .bar {
             width: 100%;
             background: linear-gradient(to top, var(--primary-color), var(--secondary-color));
-            border-radius: 4px 4px 0 0;
+            border-radius: 6px 6px 0 0;
             transition: all 0.3s ease;
             position: relative;
-            min-height: 20px;
+            min-height: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .bar:hover {
@@ -316,21 +326,26 @@
 
         .bar-value {
             position: absolute;
-            top: -25px;
+            top: -35px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 600;
             color: var(--text-primary);
             white-space: nowrap;
+            background: var(--card-background);
+            padding: 2px 6px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .bar-label {
-            margin-top: 8px;
-            font-size: 11px;
+            margin-top: 12px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--text-secondary);
             text-align: center;
+            writing-mode: horizontal-tb;
         }
 
         .holdings-table {
@@ -523,6 +538,11 @@
                 gap: 20px;
             }
 
+            .chart-container {
+                min-height: 400px;
+                padding: 20px;
+            }
+
             .controls {
                 justify-content: center;
             }
@@ -533,13 +553,36 @@
             }
 
             .donut-chart {
-                width: 150px;
-                height: 150px;
+                width: 200px;
+                height: 200px;
             }
 
             .donut-chart::before {
-                width: 90px;
-                height: 90px;
+                width: 120px;
+                height: 120px;
+            }
+
+            .chart-legend {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .bar-chart {
+                height: 250px;
+                padding: 20px 5px 30px 5px;
+            }
+
+            .bar-item {
+                max-width: 35px;
+            }
+
+            .bar-value {
+                font-size: 10px;
+                top: -30px;
+            }
+
+            .bar-label {
+                font-size: 10px;
             }
         }
     </style>
@@ -691,7 +734,7 @@
                     retries: 0
                 };
                 
-                console.log('🚦 Rate Limiter initialized: 5 req/min with 15s minimum delay');
+                console.log('Rate Limiter initialized: 5 req/min with 15s minimum delay');
             }
             
             async makeRequest(url, options = {}) {
@@ -725,14 +768,14 @@
                         const actualDelay = Math.max(0, requiredDelay - timeSinceLastRequest);
                         
                         if (actualDelay > 0) {
-                            console.log(`⏳ Rate limiter: waiting ${actualDelay}ms before next request`);
+                            console.log(`Rate limiter: waiting ${actualDelay}ms before next request`);
                             await this.sleep(actualDelay);
                         }
                         
                         this.lastRequestTime = Date.now();
                         this.stats.total++;
                         
-                        console.log(`🌐 Making API request to: ${request.url}`);
+                        console.log(`Making API request to: ${request.url}`);
                         const response = await fetch(request.url, {
                             ...request.options,
                             headers: {
@@ -745,7 +788,7 @@
                             this.stats.rateLimited++;
                             this.backoffMultiplier = Math.min(this.backoffMultiplier * 2, this.maxBackoffMultiplier);
                             
-                            console.warn(`🚫 Rate limited (429). Backoff multiplier: ${this.backoffMultiplier}x`);
+                            console.warn(`Rate limited (429). Backoff multiplier: ${this.backoffMultiplier}x`);
                             
                             if (request.retryCount < 3) {
                                 request.retryCount++;
@@ -769,7 +812,7 @@
                         }
                         
                     } catch (error) {
-                        console.error(`❌ Request failed: ${error.message}`);
+                        console.error(`Request failed: ${error.message}`);
                         
                         if (request.retryCount < 2) {
                             request.retryCount++;
@@ -873,7 +916,7 @@
         function getCachedDividend(symbol) {
             const cached = dividendCache[symbol];
             if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
-                console.log(`📦 Cache hit for ${symbol}`);
+                console.log(`Cache hit for ${symbol}`);
                 return cached.data;
             }
             return null;
@@ -884,7 +927,7 @@
                 data: data,
                 timestamp: Date.now()
             };
-            console.log(`💾 Cached dividend data for ${symbol}`);
+            console.log(`Cached dividend data for ${symbol}`);
         }
 
         // Updated fallback dividend data with current dates
@@ -958,7 +1001,7 @@
         // API FUNCTIONS
         async function fetchDividendData(symbol) {
             try {
-                console.log(`🔍 Fetching dividend data for ${symbol}...`);
+                console.log(`Fetching dividend data for ${symbol}...`);
                 
                 const cachedData = getCachedDividend(symbol);
                 if (cachedData) {
@@ -966,7 +1009,7 @@
                 }
                 
                 if (symbol === 'VWENX') {
-                    console.log(`📊 Using specialized mutual fund data for ${symbol}`);
+                    console.log(`Using specialized mutual fund data for ${symbol}`);
                     const mutualFundData = {
                         dividendPerShare: 1.65,
                         frequency: 'Quarterly',
@@ -983,7 +1026,7 @@
                     const url = `${API_BASE_URL}?apikey=${MASSIVE_API_KEY}&ticker=${symbol}`;
                     const data = await rateLimiter.makeRequest(url);
                     
-                    console.log(`📊 API response for ${symbol}:`, data);
+                    console.log(`API response for ${symbol}:`, data);
                     
                     if (data && data.results && data.results.length > 0) {
                         const latest = data.results[0];
@@ -1003,28 +1046,28 @@
                         };
                         
                         setCachedDividend(symbol, dividendData);
-                        console.log(`✅ Successfully fetched dividend data for ${symbol}: $${dividendData.dividendPerShare}`);
+                        console.log(`Successfully fetched dividend data for ${symbol}: $${dividendData.dividendPerShare}`);
                         return dividendData;
                     }
                 } catch (apiError) {
-                    console.warn(`⚠️ API failed for ${symbol}: ${apiError.message}`);
+                    console.warn(`API failed for ${symbol}: ${apiError.message}`);
                 }
                 
                 if (fallbackDividendData[symbol]) {
-                    console.log(`📋 Using fallback data for ${symbol}`);
+                    console.log(`Using fallback data for ${symbol}`);
                     const fallbackData = { ...fallbackDividendData[symbol] };
                     setCachedDividend(symbol, fallbackData);
                     return fallbackData;
                 }
                 
-                console.warn(`❌ No data available for ${symbol}`);
+                console.warn(`No data available for ${symbol}`);
                 return null;
                 
             } catch (error) {
-                console.error(`❌ Error fetching dividend data for ${symbol}:`, error);
+                console.error(`Error fetching dividend data for ${symbol}:`, error);
                 
                 if (fallbackDividendData[symbol]) {
-                    console.log(`📋 Using fallback data for ${symbol} after error`);
+                    console.log(`Using fallback data for ${symbol} after error`);
                     const fallbackData = { ...fallbackDividendData[symbol] };
                     setCachedDividend(symbol, fallbackData);
                     return fallbackData;
@@ -1037,7 +1080,7 @@
         // PRICE DATA FUNCTIONS
         async function fetchPriceData(symbol) {
             try {
-                console.log(`💰 Fetching price data for ${symbol}...`);
+                console.log(`Fetching price data for ${symbol}...`);
                 
                 const estimatedPrices = {
                     'BEPC': 25.50,
@@ -1061,14 +1104,14 @@
                 };
                 
             } catch (error) {
-                console.error(`❌ Error fetching price data for ${symbol}:`, error);
+                console.error(`Error fetching price data for ${symbol}:`, error);
                 return null;
             }
         }
 
         // DATA LOADING FUNCTIONS
         async function loadPortfolioData() {
-            console.log('🚀 Starting portfolio data loading...');
+            console.log('Starting portfolio data loading...');
             
             const symbols = Object.keys(staticPortfolioData);
             const totalSymbols = symbols.length;
@@ -1103,7 +1146,7 @@
                     updateStatusBar();
                     
                 } catch (error) {
-                    console.error(`❌ Failed to load data for ${symbol}:`, error);
+                    console.error(`Failed to load data for ${symbol}:`, error);
                     apiStats.total++;
                 }
             }
@@ -1114,7 +1157,7 @@
             const successRate = apiStats.total > 0 ? (apiStats.success / apiStats.total * 100).toFixed(1) : 0;
             updateStatusText(`Loaded ${apiStats.success}/${apiStats.total} holdings (${successRate}% success)`);
             
-            console.log(`✅ Portfolio loading complete: ${apiStats.success}/${apiStats.total} successful`);
+            console.log(`Portfolio loading complete: ${apiStats.success}/${apiStats.total} successful`);
         }
 
         // UI UPDATE FUNCTIONS
@@ -1164,7 +1207,7 @@
                 successCalls.textContent = rateLimiter.stats.success;
                 
             } catch (error) {
-                console.error('❌ Error updating status bar:', error);
+                console.error('Error updating status bar:', error);
             }
         }
 
@@ -1205,7 +1248,7 @@
                 updatePerformanceTracking(totalValue, totalAnnualIncome, dividendHoldings);
                 
             } catch (error) {
-                console.error('❌ Error updating KPIs:', error);
+                console.error('Error updating KPIs:', error);
             }
         }
 
@@ -1272,7 +1315,7 @@
                 document.getElementById('highestYield').textContent = highestFrequency || 'Calculating...';
                 
             } catch (error) {
-                console.error('❌ Error updating performance tracking:', error);
+                console.error('Error updating performance tracking:', error);
             }
         }
 
@@ -1283,7 +1326,7 @@
                 );
 
                 if (validHoldings.length === 0) {
-                    console.log('⚠️ No dividend data available for charts');
+                    console.log('No dividend data available for charts');
                     return;
                 }
 
@@ -1291,7 +1334,7 @@
                 updateIncomeBarChart(validHoldings);
                 
             } catch (error) {
-                console.error('❌ Error updating CSS charts:', error);
+                console.error('Error updating CSS charts:', error);
             }
         }
 
@@ -1315,13 +1358,13 @@
                     legendItem.className = 'legend-item';
                     legendItem.innerHTML = `
                         <div class="legend-color" style="background-color: ${chartColors[index]}"></div>
-                        <span>${item.symbol} (${percentage}%)</span>
+                        <div class="legend-text">${item.symbol} (${percentage}%)</div>
                     `;
                     legendContainer.appendChild(legendItem);
                 });
                 
             } catch (error) {
-                console.error('❌ Error updating allocation legend:', error);
+                console.error('Error updating allocation legend:', error);
             }
         }
 
@@ -1342,7 +1385,7 @@
                 const maxIncome = Math.max(...incomeData.map(item => item.income));
 
                 incomeData.forEach(item => {
-                    const barHeight = (item.income / maxIncome) * 200; // Max height 200px
+                    const barHeight = (item.income / maxIncome) * 220; // Max height 220px
                     
                     const barItem = document.createElement('div');
                     barItem.className = 'bar-item';
@@ -1356,7 +1399,7 @@
                 });
                 
             } catch (error) {
-                console.error('❌ Error updating income bar chart:', error);
+                console.error('Error updating income bar chart:', error);
             }
         }
 
@@ -1399,7 +1442,7 @@
                 });
                 
             } catch (error) {
-                console.error('❌ Error updating holdings table:', error);
+                console.error('Error updating holdings table:', error);
             }
         }
 
@@ -1450,13 +1493,13 @@
                 });
                 
             } catch (error) {
-                console.error('❌ Error updating dividend calendar:', error);
+                console.error('Error updating dividend calendar:', error);
             }
         }
 
         // BUTTON FUNCTIONS
         async function refreshData() {
-            console.log('🔄 Starting full data refresh...');
+            console.log('Starting full data refresh...');
             
             livePortfolioData = {};
             liveDividendData = {};
@@ -1467,7 +1510,7 @@
         }
 
         async function quickRefresh() {
-            console.log('⚡ Starting quick refresh (3 holdings)...');
+            console.log('Starting quick refresh (3 holdings)...');
             
             const priorityHoldings = ['BEPC', 'HYMB', 'O'];
             
@@ -1492,7 +1535,7 @@
                     updateTopHoldings();
                     updateStatusBar();
                 } catch (error) {
-                    console.error(`❌ Quick refresh failed for ${symbol}:`, error);
+                    console.error(`Quick refresh failed for ${symbol}:`, error);
                 }
             }
             
@@ -1553,7 +1596,7 @@
 
         // INITIALIZATION
         function initializeFallbackData() {
-            console.log('🔄 Initializing with fallback data...');
+            console.log('Initializing with fallback data...');
             
             Object.keys(staticPortfolioData).forEach(symbol => {
                 if (fallbackDividendData[symbol]) {
@@ -1566,12 +1609,12 @@
             apiStats.success = Object.keys(liveDividendData).length;
             apiStats.hasData = apiStats.success > 0;
             
-            console.log(`✅ Fallback data loaded: ${apiStats.success}/${apiStats.total} holdings`);
+            console.log(`Fallback data loaded: ${apiStats.success}/${apiStats.total} holdings`);
         }
 
         async function initializeDashboard() {
             try {
-                console.log('🚀 Initializing Dividend Dashboard...');
+                console.log('Initializing Dividend Dashboard...');
                 
                 const savedTheme = localStorage.getItem('theme') || 'light';
                 document.body.setAttribute('data-theme', savedTheme);
@@ -1588,16 +1631,16 @@
                     loadPortfolioData();
                 }, 1000);
                 
-                console.log('✅ Dashboard initialization complete');
+                console.log('Dashboard initialization complete');
                 
             } catch (error) {
-                console.error('❌ Dashboard initialization failed:', error);
+                console.error('Dashboard initialization failed:', error);
             }
         }
 
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('📄 DOM Content Loaded');
+            console.log('DOM Content Loaded');
             setTimeout(() => {
                 initializeDashboard();
             }, 100);
@@ -1605,7 +1648,7 @@
 
         // Fallback initialization
         if (document.readyState !== 'loading') {
-            console.log('📄 Document already loaded, initializing immediately...');
+            console.log('Document already loaded, initializing immediately...');
             setTimeout(() => {
                 initializeDashboard();
             }, 100);
