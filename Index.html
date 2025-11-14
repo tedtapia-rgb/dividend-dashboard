@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividend Portfolio Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #9c27b0;
+            --accent-secondary: #e91e63;
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --background-light: #f8f9fa;
+            --card-background: #ffffff;
+            --border-color: #e9ecef;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #8b5cf6;
+            --secondary-color: #a855f7;
+            --accent-color: #c084fc;
+            --accent-secondary: #f472b6;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --background-light: #0f172a;
+            --card-background: #1e293b;
+            --border-color: #334155;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #06b6d4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .theme-toggle, .refresh-btn, .export-btn {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover, .refresh-btn:hover, .export-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .status-bar {
+            background: var(--card-background);
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success-color);
+        }
+
+        .status-indicator.fallback {
+            background: var(--warning-color);
+        }
+
+        .status-indicator.error {
+            background: var(--danger-color);
+        }
+
+        .status-indicator.loading {
+            background: var(--info-color);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: var(--card-background);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .kpi-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .kpi-label {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: var(--card-background);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            min-height: 400px;
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            text-align: center;
+        }
+
+        .holdings-table {
+            background: var(--card-background);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .table-content {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--background-light);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: var(--background-light);
+        }
+
+        .account-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .account-brokerage {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .account-hsa {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .account-roth {
+            background: #e8f5e8;
+            color: #388e3c;
+        }
+
+        [data-theme="dark"] .account-brokerage {
+            background: #1976d2;
+            color: #e3f2fd;
+        }
+
+        [data-theme="dark"] .account-hsa {
+            background: #7b1fa2;
+            color: #f3e5f5;
+        }
+
+        [data-theme="dark"] .account-roth {
+            background: #388e3c;
+            color: #e8f5e8;
+        }
+
+        .dividend-calendar {
+            background: var(--card-background);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+
+        .calendar-header {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            text-align: center;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .calendar-item {
+            background: var(--background-light);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .calendar-symbol {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .calendar-details {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .performance-tracker {
+            background: var(--card-background);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+
+        .performance-header {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            text-align: center;
+        }
+
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .performance-item {
+            text-align: center;
+            padding: 15px;
+            background: var(--background-light);
+            border-radius: 10px;
+        }
+
+        .performance-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .performance-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .controls {
+                justify-content: center;
+            }
+
+            th, td {
+                padding: 10px 8px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Dividend Portfolio Dashboard</h1>
+            <p>Real-time portfolio tracking with comprehensive dividend analysis</p>
+        </div>
+
+        <div class="controls">
+            <div>
+                <button class="theme-toggle" onclick="toggleTheme()">🌓 Toggle Theme</button>
+                <button class="refresh-btn" onclick="refreshData()">🔄 Refresh Data</button>
+                <button class="refresh-btn" onclick="quickRefresh()">⚡ Quick Refresh</button>
+                <button class="export-btn" onclick="exportToCSV()">📊 Export CSV</button>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-indicator" id="apiStatus"></div>
+                <span id="apiStatusText">Connecting...</span>
+            </div>
+            <div class="status-item">
+                <span>Last Updated: <span id="lastUpdate">Loading...</span></span>
+            </div>
+            <div class="status-item">
+                <span>API Calls: <span id="apiCalls">0</span> | Success: <span id="successCalls">0</span></span>
+            </div>
+            <div class="status-item">
+                <span>Cache: <span id="cacheStatus">0 cached</span></span>
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-value" id="totalValue">$0.00</div>
+                <div class="kpi-label">Total Portfolio Value</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" id="annualIncome">$0.00</div>
+                <div class="kpi-label">Annual Dividend Income</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" id="avgYield">0.00%</div>
+                <div class="kpi-label">Average Dividend Yield</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" id="totalHoldings">9</div>
+                <div class="kpi-label">Total Holdings</div>
+            </div>
+        </div>
+
+        <div class="performance-tracker">
+            <div class="performance-header">📈 Portfolio Performance Tracking</div>
+            <div class="performance-grid">
+                <div class="performance-item">
+                    <div class="performance-value" id="dayChange">Loading...</div>
+                    <div class="performance-label">Next Payment Date</div>
+                </div>
+                <div class="performance-item">
+                    <div class="performance-value" id="monthlyIncome">$0.00</div>
+                    <div class="performance-label">Monthly Income Est.</div>
+                </div>
+                <div class="performance-item">
+                    <div class="performance-value" id="topPerformer">-</div>
+                    <div class="performance-label">Top Income Source</div>
+                </div>
+                <div class="performance-item">
+                    <div class="performance-value" id="highestYield">-</div>
+                    <div class="performance-label">Highest Frequency</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-container">
+                <div class="chart-title">📊 Dividend Income Allocation</div>
+                <canvas id="allocationChart" width="400" height="300"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">💵 Income Sources</div>
+                <canvas id="incomeChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+
+        <div class="dividend-calendar">
+            <div class="calendar-header">📅 Upcoming Dividend Calendar</div>
+            <div class="calendar-grid" id="dividendCalendar">
+                <!-- Calendar items will be populated here -->
+            </div>
+        </div>
+
+        <div class="holdings-table">
+            <div class="table-header">📋 Top Holdings</div>
+            <div class="table-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Account</th>
+                            <th>Shares</th>
+                            <th>Current Price</th>
+                            <th>Market Value</th>
+                            <th>Annual Income</th>
+                            <th>Dividend/Share</th>
+                            <th>Frequency</th>
+                            <th>Ex-Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="holdingsTableBody">
+                        <!-- Holdings will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // RATE LIMITER CLASS
+        class APIRateLimiter {
+            constructor() {
+                this.maxRequestsPerMinute = 5;
+                this.requestInterval = 60000 / this.maxRequestsPerMinute; // 12 seconds
+                this.safetyBuffer = 3000; // 3 second safety buffer
+                this.minDelay = this.requestInterval + this.safetyBuffer; // 15 seconds minimum
+                
+                this.requestQueue = [];
+                this.isProcessing = false;
+                this.lastRequestTime = 0;
+                this.backoffMultiplier = 1;
+                this.maxBackoffMultiplier = 8;
+                
+                this.stats = {
+                    total: 0,
+                    success: 0,
+                    rateLimited: 0,
+                    retries: 0
+                };
+                
+                console.log('🚦 Rate Limiter initialized: 5 req/min with 15s minimum delay');
+            }
+            
+            async makeRequest(url, options = {}) {
+                return new Promise((resolve, reject) => {
+                    this.requestQueue.push({
+                        url,
+                        options,
+                        resolve,
+                        reject,
+                        timestamp: Date.now(),
+                        retryCount: 0
+                    });
+                    
+                    this.processQueue();
+                });
+            }
+            
+            async processQueue() {
+                if (this.isProcessing || this.requestQueue.length === 0) {
+                    return;
+                }
+                
+                this.isProcessing = true;
+                
+                while (this.requestQueue.length > 0) {
+                    const request = this.requestQueue.shift();
+                    
+                    try {
+                        // Calculate delay needed
+                        const timeSinceLastRequest = Date.now() - this.lastRequestTime;
+                        const requiredDelay = this.minDelay * this.backoffMultiplier;
+                        const actualDelay = Math.max(0, requiredDelay - timeSinceLastRequest);
+                        
+                        if (actualDelay > 0) {
+                            console.log(`⏳ Rate limiter: waiting ${actualDelay}ms before next request`);
+                            await this.sleep(actualDelay);
+                        }
+                        
+                        // Make the actual request
+                        this.lastRequestTime = Date.now();
+                        this.stats.total++;
+                        
+                        console.log(`🌐 Making API request to: ${request.url}`);
+                        const response = await fetch(request.url, {
+                            ...request.options,
+                            headers: {
+                                'Accept': 'application/json',
+                                ...request.options.headers
+                            }
+                        });
+                        
+                        if (response.status === 429) {
+                            // Rate limited - implement exponential backoff
+                            this.stats.rateLimited++;
+                            this.backoffMultiplier = Math.min(this.backoffMultiplier * 2, this.maxBackoffMultiplier);
+                            
+                            console.warn(`🚫 Rate limited (429). Backoff multiplier: ${this.backoffMultiplier}x`);
+                            
+                            if (request.retryCount < 3) {
+                                request.retryCount++;
+                                this.stats.retries++;
+                                this.requestQueue.unshift(request); // Put back at front of queue
+                                continue;
+                            } else {
+                                request.reject(new Error('Rate limited after 3 retries'));
+                                continue;
+                            }
+                        }
+                        
+                        if (response.ok) {
+                            this.stats.success++;
+                            // Successful request - reduce backoff
+                            this.backoffMultiplier = Math.max(1, this.backoffMultiplier * 0.8);
+                            
+                            const data = await response.json();
+                            request.resolve(data);
+                        } else {
+                            request.reject(new Error(`HTTP ${response.status}: ${response.statusText}`));
+                        }
+                        
+                    } catch (error) {
+                        console.error(`❌ Request failed: ${error.message}`);
+                        
+                        if (request.retryCount < 2) {
+                            request.retryCount++;
+                            this.stats.retries++;
+                            this.requestQueue.unshift(request);
+                        } else {
+                            request.reject(error);
+                        }
+                    }
+                }
+                
+                this.isProcessing = false;
+            }
+            
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize rate limiter
+        const rateLimiter = new APIRateLimiter();
+
+        // Configuration
+        const MASSIVE_API_KEY = 'pM_C7XYdORowYJNrQ0pJSCgx0OEDdcbY';
+        const API_BASE_URL = 'https://api.massive.com/v3/reference/dividends';
+
+        // Portfolio Data
+        const staticPortfolioData = {
+            "BEPC": { shares: 2575.66, type: "stock", account: "Brokerage" },
+            "HYMB": { shares: 3213.96, type: "stock", account: "Brokerage" },
+            "ROP": { shares: 111.96, type: "stock", account: "Brokerage" },
+            "SPSB": { shares: 1901.50, type: "stock", account: "Brokerage" },
+            "VTEB": { shares: 1785.34, type: "stock", account: "Brokerage" },
+            "VWENX": { shares: 1123.781, type: "mutual_fund", account: "HSA" },
+            "MPW": { shares: 2431.00, type: "stock", account: "Roth IRA" },
+            "O": { shares: 303.238, type: "stock", account: "Roth IRA" },
+            "PFE": { shares: 612.181, type: "stock", account: "Roth IRA" }
+        };
+
+        // Global Variables
+        let livePortfolioData = {};
+        let liveDividendData = {};
+        let apiStats = { total: 0, success: 0, hasData: false, dataQuality: 0 };
+        let allocationChart = null;
+        let incomeChart = null;
+        let dividendCache = {};
+        const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes cache
+
+        // Chart Colors
+        const chartColors = [
+            '#667eea', '#764ba2', '#9c27b0', '#e91e63', '#ff6b6b',
+            '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3'
+        ];
+
+        // Utility Functions
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+
+        function formatPercentage(value) {
+            return `${value.toFixed(2)}%`;
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        }
+
+        // Caching functions
+        function getCachedDividend(symbol) {
+            const cached = dividendCache[symbol];
+            if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+                console.log(`📦 Cache hit for ${symbol}`);
+                return cached.data;
+            }
+            return null;
+        }
+
+        function setCachedDividend(symbol, data) {
+            dividendCache[symbol] = {
+                data: data,
+                timestamp: Date.now()
+            };
+            console.log(`💾 Cached dividend data for ${symbol}`);
+        }
+
+        // Fallback dividend data
+        const fallbackDividendData = {
+            'BEPC': {
+                dividendPerShare: 0.365,
+                frequency: 'Quarterly',
+                exDividendDate: '2025-02-28',
+                payDate: '2025-03-31',
+                annualEstimate: 1.46,
+                source: 'Fallback Data'
+            },
+            'HYMB': {
+                dividendPerShare: 0.094,
+                frequency: 'Monthly',
+                exDividendDate: '2025-01-15',
+                payDate: '2025-01-31',
+                annualEstimate: 1.13,
+                source: 'Fallback Data'
+            },
+            'ROP': {
+                dividendPerShare: 0.6875,
+                frequency: 'Quarterly',
+                exDividendDate: '2025-01-15',
+                payDate: '2025-02-14',
+                annualEstimate: 2.75,
+                source: 'Fallback Data'
+            },
+            'SPSB': {
+                dividendPerShare: 0.0833,
+                frequency: 'Monthly',
+                exDividendDate: '2025-01-02',
+                payDate: '2025-01-07',
+                annualEstimate: 1.00,
+                source: 'Fallback Data'
+            },
+            'VTEB': {
+                dividendPerShare: 0.0917,
+                frequency: 'Monthly',
+                exDividendDate: '2025-01-02',
+                payDate: '2025-01-07',
+                annualEstimate: 1.10,
+                source: 'Fallback Data'
+            },
+            'MPW': {
+                dividendPerShare: 0.08,
+                frequency: 'Quarterly',
+                exDividendDate: '2025-02-15',
+                payDate: '2025-03-15',
+                annualEstimate: 0.32,
+                source: 'Fallback Data'
+            },
+            'O': {
+                dividendPerShare: 0.2635,
+                frequency: 'Monthly',
+                exDividendDate: '2025-01-02',
+                payDate: '2025-01-15',
+                annualEstimate: 3.162,
+                source: 'Fallback Data'
+            },
+            'PFE': {
+                dividendPerShare: 0.42,
+                frequency: 'Quarterly',
+                exDividendDate: '2025-02-07',
+                payDate: '2025-03-07',
+                annualEstimate: 1.68,
+                source: 'Fallback Data'
+            }
+        };
+
+        // API FUNCTIONS
+        async function fetchDividendData(symbol) {
+            try {
+                console.log(`🔍 Fetching dividend data for ${symbol}...`);
+                
+                // Check cache first
+                const cachedData = getCachedDividend(symbol);
+                if (cachedData) {
+                    return cachedData;
+                }
+                
+                // Special handling for VWENX (mutual fund)
+                if (symbol === 'VWENX') {
+                    console.log(`📊 Using specialized mutual fund data for ${symbol}`);
+                    const mutualFundData = {
+                        dividendPerShare: 1.65,
+                        frequency: 'Quarterly',
+                        exDividendDate: '2025-03-21',
+                        payDate: '2025-03-24',
+                        annualEstimate: 1.65,
+                        source: 'Mutual Fund Data'
+                    };
+                    setCachedDividend(symbol, mutualFundData);
+                    return mutualFundData;
+                }
+                
+                // Try API call with rate limiting
+                try {
+                    const url = `${API_BASE_URL}?apikey=${MASSIVE_API_KEY}&ticker=${symbol}`;
+                    const data = await rateLimiter.makeRequest(url);
+                    
+                    console.log(`📊 API response for ${symbol}:`, data);
+                    
+                    if (data && data.results && data.results.length > 0) {
+                        const latest = data.results[0];
+                        
+                        const dividendData = {
+                            dividendPerShare: latest.cash_amount || 0,
+                            frequency: {
+                                1: 'Annual',
+                                2: 'Semi-Annual',
+                                4: 'Quarterly',
+                                12: 'Monthly'
+                            }[latest.frequency] || 'Unknown',
+                            exDividendDate: latest.ex_dividend_date || 'N/A',
+                            payDate: latest.pay_date || 'N/A',
+                            annualEstimate: (latest.cash_amount || 0) * (latest.frequency || 1),
+                            source: 'Massive.com API'
+                        };
+                        
+                        setCachedDividend(symbol, dividendData);
+                        console.log(`✅ Successfully fetched dividend data for ${symbol}: $${dividendData.dividendPerShare}`);
+                        return dividendData;
+                    }
+                } catch (apiError) {
+                    console.warn(`⚠️ API failed for ${symbol}: ${apiError.message}`);
+                }
+                
+                // Fallback to static data
+                if (fallbackDividendData[symbol]) {
+                    console.log(`📋 Using fallback data for ${symbol}`);
+                    const fallbackData = { ...fallbackDividendData[symbol] };
+                    setCachedDividend(symbol, fallbackData);
+                    return fallbackData;
+                }
+                
+                console.warn(`❌ No data available for ${symbol}`);
+                return null;
+                
+            } catch (error) {
+                console.error(`❌ Error fetching dividend data for ${symbol}:`, error);
+                
+                // Try fallback data on error
+                if (fallbackDividendData[symbol]) {
+                    console.log(`📋 Using fallback data for ${symbol} after error`);
+                    const fallbackData = { ...fallbackDividendData[symbol] };
+                    setCachedDividend(symbol, fallbackData);
+                    return fallbackData;
+                }
+                
+                return null;
+            }
+        }
+
+        // PRICE DATA FUNCTIONS
+        async function fetchPriceData(symbol) {
+            try {
+                console.log(`💰 Fetching price data for ${symbol}...`);
+                
+                // For now, use estimated prices based on typical values
+                const estimatedPrices = {
+                    'BEPC': 25.50,
+                    'HYMB': 24.80,
+                    'ROP': 485.00,
+                    'SPSB': 29.75,
+                    'VTEB': 51.20,
+                    'VWENX': 42.30,
+                    'MPW': 4.85,
+                    'O': 58.40,
+                    'PFE': 26.20
+                };
+                
+                const price = estimatedPrices[symbol] || 50.00;
+                const shares = staticPortfolioData[symbol].shares;
+                
+                return {
+                    currentPrice: price,
+                    marketValue: price * shares,
+                    source: 'Estimated Prices'
+                };
+                
+            } catch (error) {
+                console.error(`❌ Error fetching price data for ${symbol}:`, error);
+                return null;
+            }
+        }
+
+        // DATA LOADING FUNCTIONS
+        async function loadPortfolioData() {
+            console.log('🚀 Starting portfolio data loading...');
+            
+            const symbols = Object.keys(staticPortfolioData);
+            const totalSymbols = symbols.length;
+            
+            // Reset API stats for fresh loading
+            apiStats = { total: 0, success: 0, hasData: false, dataQuality: 0 };
+            
+            updateStatusText(`Loading ${totalSymbols} holdings...`);
+            
+            // Load dividend and price data for each symbol
+            for (let i = 0; i < symbols.length; i++) {
+                const symbol = symbols[i];
+                const progress = Math.round(((i + 1) / totalSymbols) * 100);
+                
+                updateStatusText(`Loading ${symbol}... (${i + 1}/${totalSymbols} - ${progress}%)`);
+                
+                try {
+                    // Fetch dividend data
+                    const dividend = await fetchDividendData(symbol);
+                    if (dividend) {
+                        liveDividendData[symbol] = dividend;
+                        apiStats.success++;
+                    }
+                    
+                    // Fetch price data
+                    const price = await fetchPriceData(symbol);
+                    if (price) {
+                        livePortfolioData[symbol] = price;
+                    }
+                    
+                    apiStats.total++;
+                    apiStats.hasData = Object.keys(liveDividendData).length > 0;
+                    
+                    // Update UI progressively
+                    updateKPIs();
+                    updateTopHoldings();
+                    updateStatusBar();
+                    
+                } catch (error) {
+                    console.error(`❌ Failed to load data for ${symbol}:`, error);
+                    apiStats.total++;
+                }
+            }
+            
+            // Final updates
+            updateDividendCalendar();
+            updateCharts();
+            
+            const successRate = apiStats.total > 0 ? (apiStats.success / apiStats.total * 100).toFixed(1) : 0;
+            updateStatusText(`Loaded ${apiStats.success}/${apiStats.total} holdings (${successRate}% success)`);
+            
+            console.log(`✅ Portfolio loading complete: ${apiStats.success}/${apiStats.total} successful`);
+        }
+
+        // UI UPDATE FUNCTIONS
+        function updateStatusText(text) {
+            const statusText = document.getElementById('apiStatusText');
+            if (statusText) {
+                statusText.textContent = text;
+            }
+        }
+
+        function updateStatusBar() {
+            try {
+                const statusIndicator = document.getElementById('apiStatus');
+                const statusText = document.getElementById('apiStatusText');
+                const lastUpdate = document.getElementById('lastUpdate');
+                const apiCalls = document.getElementById('apiCalls');
+                const successCalls = document.getElementById('successCalls');
+                const cacheStatus = document.getElementById('cacheStatus');
+
+                if (!statusIndicator || !statusText || !lastUpdate || !apiCalls || !successCalls || !cacheStatus) {
+                    return;
+                }
+
+                // Update cache status
+                const cachedCount = Object.keys(dividendCache).length;
+                cacheStatus.textContent = `${cachedCount} cached`;
+
+                // Update API stats
+                const validDividends = Object.keys(liveDividendData).length;
+                apiStats.hasData = validDividends > 0;
+
+                // Update status indicator
+                statusIndicator.className = 'status-indicator';
+                
+                if (rateLimiter.stats.rateLimited > 0) {
+                    statusIndicator.classList.add('error');
+                    statusText.textContent = `Rate Limited (${validDividends} holdings)`;
+                } else if (validDividends > 0) {
+                    statusText.textContent = `Connected (${validDividends} holdings)`;
+                } else if (apiStats.total > 0) {
+                    statusIndicator.classList.add('fallback');
+                    statusText.textContent = `Limited Data (${apiStats.success}/${apiStats.total})`;
+                } else {
+                    statusIndicator.classList.add('loading');
+                    statusText.textContent = 'Loading...';
+                }
+
+                lastUpdate.textContent = new Date().toLocaleTimeString();
+                apiCalls.textContent = rateLimiter.stats.total;
+                successCalls.textContent = rateLimiter.stats.success;
+                
+            } catch (error) {
+                console.error('❌ Error updating status bar:', error);
+            }
+        }
+
+        function updateKPIs() {
+            try {
+                let totalValue = 0;
+                let totalAnnualIncome = 0;
+                let validHoldings = 0;
+                let dividendHoldings = 0;
+
+                Object.keys(staticPortfolioData).forEach(symbol => {
+                    const holding = livePortfolioData[symbol];
+                    const dividend = liveDividendData[symbol];
+                    
+                    if (holding && holding.marketValue) {
+                        totalValue += holding.marketValue;
+                        validHoldings++;
+                    }
+                    
+                    if (dividend && dividend.annualEstimate) {
+                        totalAnnualIncome += staticPortfolioData[symbol].shares * dividend.annualEstimate;
+                        dividendHoldings++;
+                    }
+                });
+
+                const avgYield = totalValue > 0 ? (totalAnnualIncome / totalValue) * 100 : 0;
+
+                // Update KPI elements
+                const totalValueEl = document.getElementById('totalValue');
+                const annualIncomeEl = document.getElementById('annualIncome');
+                const avgYieldEl = document.getElementById('avgYield');
+                const totalHoldingsEl = document.getElementById('totalHoldings');
+                
+                if (totalValueEl) totalValueEl.textContent = totalValue > 0 ? formatCurrency(totalValue) : 'Calculating...';
+                if (annualIncomeEl) annualIncomeEl.textContent = formatCurrency(totalAnnualIncome);
+                if (avgYieldEl) avgYieldEl.textContent = avgYield > 0 ? formatPercentage(avgYield) : 'Calculating...';
+                if (totalHoldingsEl) totalHoldingsEl.textContent = `${dividendHoldings}/${Object.keys(staticPortfolioData).length}`;
+
+                updatePerformanceTracking(totalValue, totalAnnualIncome, dividendHoldings);
+                
+            } catch (error) {
+                console.error('❌ Error updating KPIs:', error);
+            }
+        }
+
+        function updatePerformanceTracking(totalValue, totalAnnualIncome, validHoldings) {
+            try {
+                if (validHoldings === 0) {
+                    document.getElementById('dayChange').textContent = 'Calculating...';
+                    document.getElementById('monthlyIncome').textContent = formatCurrency(0);
+                    document.getElementById('topPerformer').textContent = 'Loading...';
+                    document.getElementById('highestYield').textContent = 'Loading...';
+                    return;
+                }
+
+                const monthlyIncome = totalAnnualIncome / 12;
+
+                // Find top performer and next payment date
+                let topPerformer = '';
+                let highestIncome = 0;
+                let highestFrequency = '';
+                let nextPaymentDate = null;
+                let earliestDate = new Date('2099-12-31');
+
+                Object.keys(liveDividendData).forEach(symbol => {
+                    const dividend = liveDividendData[symbol];
+                    
+                    if (dividend && dividend.annualEstimate > 0) {
+                        const shares = staticPortfolioData[symbol].shares;
+                        const totalIncome = shares * dividend.annualEstimate;
+                        
+                        if (totalIncome > highestIncome) {
+                            highestIncome = totalIncome;
+                            topPerformer = symbol;
+                        }
+
+                        if (dividend.exDividendDate && dividend.exDividendDate !== 'N/A') {
+                            const exDate = new Date(dividend.exDividendDate);
+                            if (exDate < earliestDate) {
+                                earliestDate = exDate;
+                                nextPaymentDate = dividend.payDate;
+                            }
+                        }
+                    }
+                });
+
+                // Find highest frequency
+                const frequencies = Object.values(liveDividendData)
+                    .map(d => d.frequency)
+                    .filter(f => f);
+                
+                if (frequencies.includes('Monthly')) {
+                    highestFrequency = 'Monthly';
+                } else if (frequencies.includes('Quarterly')) {
+                    highestFrequency = 'Quarterly';
+                } else if (frequencies.includes('Semi-Annual')) {
+                    highestFrequency = 'Semi-Annual';
+                } else if (frequencies.includes('Annual')) {
+                    highestFrequency = 'Annual';
+                }
+
+                const nextPaymentText = (nextPaymentDate && nextPaymentDate !== 'N/A') ? 
+                    formatDate(nextPaymentDate) : 'Calculating...';
+
+                document.getElementById('dayChange').textContent = nextPaymentText;
+                document.getElementById('monthlyIncome').textContent = formatCurrency(monthlyIncome);
+                document.getElementById('topPerformer').textContent = topPerformer || 'Calculating...';
+                document.getElementById('highestYield').textContent = highestFrequency || 'Calculating...';
+                
+            } catch (error) {
+                console.error('❌ Error updating performance tracking:', error);
+            }
+        }
+
+        function updateCharts() {
+            try {
+                const validHoldings = Object.keys(liveDividendData).filter(symbol => 
+                    liveDividendData[symbol] && liveDividendData[symbol].annualEstimate > 0
+                );
+
+                if (validHoldings.length === 0) {
+                    console.log('⚠️ No dividend data available for charts');
+                    return;
+                }
+
+                updateAllocationChart(validHoldings);
+                updateIncomeChart(validHoldings);
+                
+            } catch (error) {
+                console.error('❌ Error updating charts:', error);
+            }
+        }
+
+        function updateAllocationChart(validHoldings) {
+            try {
+                const ctx = document.getElementById('allocationChart');
+                if (!ctx) return;
+
+                if (allocationChart) {
+                    allocationChart.destroy();
+                    allocationChart = null;
+                }
+
+                const context = ctx.getContext('2d');
+                const labels = validHoldings;
+                const data = validHoldings.map(symbol => {
+                    return staticPortfolioData[symbol].shares * liveDividendData[symbol].annualEstimate;
+                });
+
+                allocationChart = new Chart(context, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: chartColors.slice(0, labels.length),
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { 
+                                    padding: 0"color:#005CC5">15, 
+                                    usePointStyle: true,
+                                    boxWidth: 12
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const symbol = context.label;
+                                        const value = context.parsed;
+                                        const account = staticPortfolioData[symbol].account;
+                                        const percentage = ((value / data.reduce((a, b) => a + b, 0)) * 100).toFixed(1);
+                                        return `${symbol} (${account}): ${formatCurrency(value)}/year (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                console.error('❌ Error creating allocation chart:', error);
+            }
+        }
+
+        function updateIncomeChart(validHoldings) {
+            try {
+                const ctx = document.getElementById('incomeChart');
+                if (!ctx) return;
+
+                if (incomeChart) {
+                    incomeChart.destroy();
+                    incomeChart = null;
+                }
+
+                const context = ctx.getContext('2d');
+                const incomeData = validHoldings
+                    .map(symbol => ({
+                        symbol,
+                        income: staticPortfolioData[symbol].shares * liveDividendData[symbol].annualEstimate
+                    }))
+                    .sort((a, b) => b.income - a.income);
+
+                const labels = incomeData.map(item => item.symbol);
+                const data = incomeData.map(item => item.income);
+
+                incomeChart = new Chart(context, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Annual Dividend Income',
+                            data: data,
+                            backgroundColor: chartColors[0],
+                            borderColor: chartColors[1],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const symbol = context.label;
+                                        const income = context.parsed.y;
+                                        const frequency = liveDividendData[symbol] ? liveDividendData[symbol].frequency : 'Unknown';
+                                        return `${symbol}: ${formatCurrency(income)} (${frequency})`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.1)' },
+                                ticks: {
+                                    callback: function(value) {
+                                        return formatCurrency(value);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                console.error('❌ Error creating income chart:', error);
+            }
+        }
+
+        function updateTopHoldings() {
+            try {
+                const tbody = document.getElementById('holdingsTableBody');
+                if (!tbody) return;
+                
+                tbody.innerHTML = '';
+
+                const sortedSymbols = Object.keys(staticPortfolioData).sort((a, b) => {
+                    const accountOrder = { 'Brokerage': 0, 'HSA': 1, 'Roth IRA': 2 };
+                    const accountA = staticPortfolioData[a].account;
+                    const accountB = staticPortfolioData[b].account;
+                    return accountOrder[accountA] - accountOrder[accountB];
+                });
+
+                sortedSymbols.forEach(symbol => {
+                    const staticHolding = staticPortfolioData[symbol];
+                    const liveHolding = livePortfolioData[symbol];
+                    const dividend = liveDividendData[symbol];
+                    
+                    const currentPrice = liveHolding ? liveHolding.currentPrice : null;
+                    const marketValue = liveHolding ? liveHolding.marketValue : null;
+                    const annualIncome = dividend ? staticHolding.shares * dividend.annualEstimate : null;
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><strong>${symbol}</strong></td>
+                        <td><span class="account-badge account-${staticHolding.account.toLowerCase().replace(' ', '')}">${staticHolding.account}</span></td>
+                        <td>${staticHolding.shares.toLocaleString('en-US', { maximumFractionDigits: 2 })}</td>
+                        <td>${currentPrice ? formatCurrency(currentPrice) : 'Loading...'}</td>
+                        <td><strong>${marketValue ? formatCurrency(marketValue) : 'Loading...'}</strong></td>
+                        <td>${annualIncome ? formatCurrency(annualIncome) : 'Loading...'}</td>
+                        <td>${dividend ? `$${dividend.dividendPerShare.toFixed(4)}` : 'Loading...'}</td>
+                        <td>${dividend ? dividend.frequency : 'Loading...'}</td>
+                        <td>${dividend ? formatDate(dividend.exDividendDate) : 'Loading...'}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+            } catch (error) {
+                console.error('❌ Error updating holdings table:', error);
+            }
+        }
+
+        function updateDividendCalendar() {
+            try {
+                const calendarContainer = document.getElementById('dividendCalendar');
+                if (!calendarContainer) return;
+                
+                calendarContainer.innerHTML = '';
+
+                const validDividends = Object.keys(liveDividendData).filter(symbol => 
+                    liveDividendData[symbol] && liveDividendData[symbol].dividendPerShare > 0
+                );
+
+                if (validDividends.length === 0) {
+                    const noDataItem = document.createElement('div');
+                    noDataItem.className = 'calendar-item';
+                    noDataItem.innerHTML = `
+                        <div class="calendar-symbol">Loading Dividend Calendar...</div>
+                        <div class="calendar-details">Dividend information is being loaded...</div>
+                    `;
+                    calendarContainer.appendChild(noDataItem);
+                    return;
+                }
+
+                const sortedDividends = validDividends
+                    .map(symbol => ({
+                        symbol,
+                        ...liveDividendData[symbol],
+                        shares: staticPortfolioData[symbol].shares
+                    }))
+                    .sort((a, b) => new Date(a.exDividendDate) - new Date(b.exDividendDate));
+
+                sortedDividends.forEach(dividend => {
+                    const expectedIncome = dividend.shares * dividend.dividendPerShare;
+                    
+                    const calendarItem = document.createElement('div');
+                    calendarItem.className = 'calendar-item';
+                    calendarItem.innerHTML = `
+                        <div class="calendar-symbol">${dividend.symbol}</div>
+                        <div class="calendar-details">
+                            Ex-Date: ${formatDate(dividend.exDividendDate)}<br>
+                            Pay Date: ${formatDate(dividend.payDate)}<br>
+                            Expected: ${formatCurrency(expectedIncome)} (${dividend.frequency})
+                        </div>
+                    `;
+                    calendarContainer.appendChild(calendarItem);
+                });
+                
+            } catch (error) {
+                console.error('❌ Error updating dividend calendar:', error);
+            }
+        }
+
+        // BUTTON FUNCTIONS
+        async function refreshData() {
+            console.log('🔄 Starting full data refresh...');
+            
+            // Clear existing data
+            livePortfolioData = {};
+            liveDividendData = {};
+            dividendCache = {};
+            apiStats = { total: 0, success: 0, hasData: false, dataQuality: 0 };
+            
+            await loadPortfolioData();
+        }
+
+        async function quickRefresh() {
+            console.log('⚡ Starting quick refresh (3 holdings)...');
+            
+            const priorityHoldings = ['BEPC', 'HYMB', 'O']; // Top 3 by income
+            
+            updateStatusText('Quick refresh: 3 priority holdings...');
+            
+            for (let i = 0; i < priorityHoldings.length; i++) {
+                const symbol = priorityHoldings[i];
+                updateStatusText(`Quick refresh: ${symbol} (${i + 1}/3)`);
+                
+                try {
+                    const dividend = await fetchDividendData(symbol);
+                    if (dividend) {
+                        liveDividendData[symbol] = dividend;
+                    }
+                    
+                    const price = await fetchPriceData(symbol);
+                    if (price) {
+                        livePortfolioData[symbol] = price;
+                    }
+                    
+                    updateKPIs();
+                    updateTopHoldings();
+                    updateStatusBar();
+                } catch (error) {
+                    console.error(`❌ Quick refresh failed for ${symbol}:`, error);
+                }
+            }
+            
+            updateDividendCalendar();
+            updateCharts();
+            updateStatusText('Quick refresh complete');
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            setTimeout(() => {
+                updateCharts();
+            }, 100);
+        }
+
+        function exportToCSV() {
+            const headers = ['Symbol', 'Account', 'Shares', 'Price', 'Value', 'Annual Income', 'Yield', 'Frequency', 'Ex-Date', 'Pay Date'];
+            const rows = [headers];
+
+            Object.keys(staticPortfolioData).forEach(symbol => {
+                const staticHolding = staticPortfolioData[symbol];
+                const liveHolding = livePortfolioData[symbol];
+                const dividend = liveDividendData[symbol];
+                
+                const currentPrice = liveHolding ? liveHolding.currentPrice : 'No Data';
+                const marketValue = liveHolding ? liveHolding.marketValue : 'No Data';
+                const annualIncome = dividend ? staticHolding.shares * dividend.annualEstimate : 'No Data';
+                const yield = (liveHolding && dividend && liveHolding.currentPrice > 0) ? 
+                    (dividend.dividendPerShare / liveHolding.currentPrice) * 100 : 'No Data';
+
+                rows.push([
+                    symbol,
+                    staticHolding.account,
+                    staticHolding.shares.toFixed(2),
+                    typeof currentPrice === 'number' ? currentPrice.toFixed(2) : currentPrice,
+                    typeof marketValue === 'number' ? marketValue.toFixed(2) : marketValue,
+                    typeof annualIncome === 'number' ? annualIncome.toFixed(2) : annualIncome,
+                    typeof yield === 'number' ? yield.toFixed(2) + '%' : yield,
+                    dividend ? dividend.frequency : 'No Data',
+                    dividend ? dividend.exDividendDate : 'No Data',
+                    dividend ? dividend.payDate : 'No Data'
+                ]);
+            });
+
+            const csvContent = rows.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dividend_portfolio_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        // INITIALIZATION
+        function initializeFallbackData() {
+            console.log('🔄 Initializing with fallback data...');
+            
+            Object.keys(staticPortfolioData).forEach(symbol => {
+                if (fallbackDividendData[symbol]) {
+                    liveDividendData[symbol] = { ...fallbackDividendData[symbol] };
+                    setCachedDividend(symbol, liveDividendData[symbol]);
+                }
+            });
+            
+            apiStats.total = Object.keys(staticPortfolioData).length;
+            apiStats.success = Object.keys(liveDividendData).length;
+            apiStats.hasData = apiStats.success > 0;
+            
+            console.log(`✅ Fallback data loaded: ${apiStats.success}/${apiStats.total} holdings`);
+        }
+
+        async function initializeDashboard() {
+            try {
+                console.log('🚀 Initializing Dividend Dashboard...');
+                
+                // Load theme
+                const savedTheme = localStorage.getItem('theme') || 'light';
+                document.body.setAttribute('data-theme', savedTheme);
+                
+                // Initialize with fallback data first
+                initializeFallbackData();
+                
+                // Update UI with fallback data
+                updateKPIs();
+                updateTopHoldings();
+                updateDividendCalendar();
+                updateCharts();
+                updateStatusBar();
+                
+                // Start loading real data
+                setTimeout(() => {
+                    loadPortfolioData();
+                }, 1000);
+                
+                console.log('✅ Dashboard initialization complete');
+                
+            } catch (error) {
+                console.error('❌ Dashboard initialization failed:', error);
+            }
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM Content Loaded');
+            setTimeout(() => {
+                initializeDashboard();
+            }, 100);
+        });
+
+        // Fallback initialization
+        if (document.readyState !== 'loading') {
+            console.log('📄 Document already loaded, initializing immediately...');
+            setTimeout(() => {
+                initializeDashboard();
+            }, 100);
+        }
+    </script>
+</body>
+</html>
